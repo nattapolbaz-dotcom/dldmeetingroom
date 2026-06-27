@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ปฏิทินการจอง — ระบบจองห้องประชุม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #F0F4F8; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #F0F4F8; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
+    select { -webkit-appearance: none; appearance: none; }
+    input, select, button { font-family: inherit; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    #app { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 49; }
+    #sidebar-overlay.show { display: block; }
+    #sidebar {
+      width: 240px; background: #1B4F72;
+      position: fixed; left: 0; top: 0; height: 100vh;
+      z-index: 50; display: flex; flex-direction: column;
+      transition: transform 280ms ease; overflow: hidden;
+    }
+    #sidebar.collapsed { transform: translateX(-240px); }
+    .sb-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .sb-logo-inner { display: flex; align-items: center; gap: 10px; }
+    .sb-logo-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2); }
+    .sb-logo-text { font-size: 13px; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; }
+    .sb-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.55); margin: 2px 0 0; }
+    #sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    .sb-nav-link { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 20px; background: transparent; border: none; border-left: 3px solid transparent; cursor: pointer; text-decoration: none; transition: all 150ms; }
+    .sb-nav-link:hover { background: rgba(255,255,255,0.08); }
+    .sb-nav-link.active { background: rgba(255,255,255,0.15); border-left-color: rgba(255,255,255,0.88); }
+    .sb-nav-icon { flex-shrink: 0; opacity: 0.65; }
+    .sb-nav-link.active .sb-nav-icon { opacity: 1; }
+    .sb-nav-label { font-size: 13.5px; font-weight: 400; color: rgba(255,255,255,0.68); }
+    .sb-nav-link.active .sb-nav-label { font-weight: 600; color: rgba(255,255,255,0.96); }
+    .sb-user { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.12); }
+    .sb-user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .sb-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.25); font-size: 12px; font-weight: 700; color: #fff; }
+    .sb-name { font-size: 13px; font-weight: 600; color: #fff; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-dept { font-size: 11px; color: rgba(255,255,255,0.55); margin: 2px 0 0; }
+    .sb-logout { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.08); border: none; border-radius: 7px; cursor: pointer; transition: background 150ms; font-size: 13px; color: rgba(255,255,255,0.7); }
+    .sb-logout:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Main ────────────────────────────────────────────── */
+    #main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 280ms ease; }
+
+    /* ── Navbar ──────────────────────────────────────────── */
+    #navbar { height: 64px; background: #fff; border-bottom: 1px solid #E2E8F0; position: sticky; top: 0; z-index: 40; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+    #hamburger { width: 38px; height: 38px; border: none; background: none; cursor: pointer; display: none; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; transition: background 150ms; }
+    #hamburger:hover { background: #F0F4F8; }
+    .breadcrumb { display: flex; align-items: center; gap: 7px; white-space: nowrap; flex-shrink: 0; }
+    .breadcrumb-home { font-size: 13px; color: #A0AEC0; }
+    .breadcrumb-sep  { color: #D2D6DC; }
+    .breadcrumb-cur  { font-size: 13px; font-weight: 600; color: #1A2332; }
+    .nb-spacer { flex: 1; }
+    .nb-wrap { position: relative; }
+    .nb-btn { width: 38px; height: 38px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #4A5568; transition: background 150ms; }
+    .nb-btn:hover { background: #F0F4F8; }
+    .nb-badge { position: absolute; top: 7px; right: 7px; width: 15px; height: 15px; background: #C0392B; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; font-size: 8px; font-weight: 700; color: #fff; }
+    .ub-av { width: 34px; height: 34px; border-radius: 50%; background: #1B4F72; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+
+    /* ── Content ─────────────────────────────────────────── */
+    #content { flex: 1; padding: 28px; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 16px; }
+    .page-title { font-size: 22px; font-weight: 700; color: #1A2332; margin: 0 0 4px; letter-spacing: -0.3px; }
+    .page-sub   { font-size: 13px; color: #718096; margin: 0; }
+    .btn-primary-sm { display: flex; align-items: center; gap: 7px; padding: 10px 18px; background: #1B4F72; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 200ms; flex-shrink: 0; text-decoration: none; }
+    .btn-primary-sm:hover { background: #163d58; }
+
+    /* ── Controls bar ────────────────────────────────────── */
+    .controls-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .nav-group { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fff; border-radius: 8px; border: 1px solid #E2E8F0; }
+    .nav-btn { width: 32px; height: 32px; border: 1.5px solid #E2E8F0; border-radius: 6px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #4A5568; transition: all 150ms; }
+    .nav-btn:hover { border-color: #1B4F72; color: #1B4F72; }
+    #cal-header-label { font-size: 13px; font-weight: 600; color: #1A2332; min-width: 130px; text-align: center; }
+    .nav-divider { width: 1px; height: 24px; background: #E2E8F0; margin: 0 4px; }
+    .today-btn { padding: 6px 12px; border: 1.5px solid #E2E8F0; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 500; color: #4A5568; transition: all 150ms; }
+    .today-btn:hover { border-color: #1B4F72; color: #1B4F72; }
+    .view-toggle { display: flex; border: 1.5px solid #E2E8F0; border-radius: 7px; background: #fff; overflow: hidden; }
+    .vt-btn { padding: 8px 14px; border: none; background: #fff; color: #4A5568; cursor: pointer; font-size: 12px; font-weight: 500; border-right: 1px solid #E2E8F0; transition: all 150ms; }
+    .vt-btn:last-child { border-right: none; }
+    .vt-btn.active { background: #1B4F72; color: #fff; font-weight: 600; }
+    .filter-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .filter-select-wrap { position: relative; }
+    .filter-select-wrap .fi { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .filter-select { padding: 8px 28px 8px 30px; border: 1.5px solid #E2E8F0; border-radius: 7px; font-size: 12px; color: #4A5568; background: #fff; outline: none; cursor: pointer; transition: border-color 200ms; }
+    .filter-select:focus { border-color: #1B4F72; }
+    .filter-arrow { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+    /* ── Calendar card ───────────────────────────────────── */
+    .cal-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 16px; overflow: hidden; }
+
+    /* ── Month view ──────────────────────────────────────── */
+    .month-day-headers { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-bottom: 10px; }
+    .month-day-header { text-align: center; font-size: 11px; font-weight: 700; color: #A0AEC0; padding: 8px 0; }
+    .month-day-header.weekend { color: #C0392B; opacity: 0.7; }
+    #cal-month { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; min-height: 420px; }
+    .cal-cell { min-height: 80px; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px; background: #fff; position: relative; cursor: pointer; transition: all 150ms; }
+    .cal-cell:hover { border-color: #1B4F72; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .cal-cell.is-today { background: #EBF5FB; border-color: #2E86AB; }
+    .cal-cell.selected { border-color: #1B4F72; box-shadow: 0 0 0 2px rgba(27,79,114,0.2); }
+    .cal-cell-empty { min-height: 80px; border: 1px solid transparent; border-radius: 6px; background: #F8FAFC; cursor: default; }
+    .cal-day-num { font-size: 11px; font-weight: 500; color: #4A5568; line-height: 1; display: block; margin-bottom: 4px; }
+    .cal-day-num.is-today { font-weight: 700; color: #1B4F72; }
+    .cal-day-num.weekend { color: #C0392B; }
+    .cal-events { display: flex; flex-direction: column; gap: 2px; }
+    .cal-event-bar { width: 100%; padding: 2px 5px; border-radius: 3px; font-size: 9px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
+    .cal-more { font-size: 9px; color: #718096; padding: 1px 4px; }
+
+    /* ── Week view ───────────────────────────────────────── */
+    #cal-week { display: none; }
+    .week-header { display: flex; border-bottom: 2px solid #E2E8F0; }
+    .week-time-col { width: 60px; flex-shrink: 0; }
+    .week-day-col { flex: 1; min-width: 0; }
+    .week-header-cell { padding: 10px 4px; text-align: center; }
+    .week-day-label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .week-day-short { font-size: 10px; font-weight: 600; color: #A0AEC0; text-transform: uppercase; }
+    .week-day-num { font-size: 18px; font-weight: 600; color: #4A5568; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .week-day-num.is-today { background: #1B4F72; color: #fff; }
+    .week-body { position: relative; }
+    .week-row { display: flex; height: 52px; border-bottom: 1px dashed #F0F4F8; }
+    .week-time-label { width: 60px; flex-shrink: 0; font-size: 10px; color: #A0AEC0; padding: 6px 10px 0 0; text-align: right; }
+    .week-hour-cell { flex: 1; border-left: 1px solid #F0F4F8; }
+    .week-event-block { position: absolute; border-radius: 4px; padding: 3px 6px; overflow: hidden; cursor: pointer; transition: opacity 150ms; }
+    .week-event-block:hover { opacity: 0.85; }
+
+    /* ── Day view ────────────────────────────────────────── */
+    #cal-day { display: none; }
+    .day-header-row { display: flex; align-items: center; justify-content: center; padding: 12px 0 16px; border-bottom: 2px solid #E2E8F0; margin-bottom: 4px; }
+    .day-title { font-size: 15px; font-weight: 600; color: #1A2332; }
+    .day-time-grid { position: relative; }
+    .day-hour-row { display: flex; height: 64px; border-bottom: 1px dashed #F0F4F8; }
+    .day-time-label { width: 60px; flex-shrink: 0; font-size: 11px; color: #A0AEC0; padding: 8px 12px 0 0; text-align: right; }
+    .day-hour-cell { flex: 1; border-left: 1px solid #F0F4F8; position: relative; }
+    .day-event-block { position: absolute; border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: box-shadow 150ms; }
+    .day-event-block:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .day-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: #A0AEC0; }
+    .day-empty p { font-size: 13px; margin: 8px 0 0; }
+
+    /* ── Day Detail Panel ────────────────────────────────── */
+    #day-detail { display: none; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05); padding: 20px; animation: slideIn 200ms ease; }
+    .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #F0F4F8; }
+    .detail-date-title { font-size: 15px; font-weight: 700; color: #1A2332; margin: 0; }
+    .detail-actions { display: flex; gap: 8px; align-items: center; }
+    .detail-close { width: 28px; height: 28px; border: 1.5px solid #E2E8F0; background: #fff; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #718096; transition: all 150ms; }
+    .detail-close:hover { border-color: #4A5568; color: #1A2332; }
+    #day-detail-list { display: flex; flex-direction: column; gap: 10px; }
+    .detail-card { display: flex; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; transition: box-shadow 150ms; }
+    .detail-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .detail-card-left { width: 4px; flex-shrink: 0; }
+    .detail-card-body { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; }
+    .detail-card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .detail-card-title { font-size: 13px; font-weight: 600; color: #1A2332; }
+    .detail-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+    .detail-card-meta { font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .detail-dot { color: #CBD5E0; }
+    .detail-empty { text-align: center; padding: 28px; color: #A0AEC0; font-size: 13px; }
+
+    /* ── Legend ──────────────────────────────────────────── */
+    .legend { display: flex; gap: 20px; flex-wrap: wrap; padding: 14px 0; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #718096; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 1023px) {
+      #main { margin-left: 0; }
+      #hamburger { display: flex; }
+      #content { padding: 16px; }
+    }
+    @media (max-width: 767px) {
+      .controls-bar { gap: 8px; }
+      .filter-wrap { width: 100%; }
+      .cal-event-bar { display: none; }
+      .cal-cell { min-height: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Sidebar overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-inner">
+        <div class="sb-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="8" width="16" height="11" rx="1" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/>
+            <path d="M1 8L10 2l9 6" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linejoin="round"/>
+            <rect x="8" y="13" width="4" height="6" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+          </svg>
+        </div>
+        <div>
+          <p class="sb-logo-text">ระบบจองห้องประชุม</p>
+          <p class="sb-logo-sub">สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+        </div>
+      </div>
+    </div>
+
+    <nav id="sidebar-nav">
+      <a href="dashboard.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <path d="M2 7L9 2l7 5v9a1 1 0 01-1 1H3a1 1 0 01-1-1V7z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M6 18v-7h6v7" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="sb-nav-label">ภาพรวม</span>
+      </a>
+      <a href="calendar.html" class="sb-nav-link active" aria-current="page">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="white" stroke-width="1.5"/>
+          <path d="M1.5 7.5h15" stroke="white" stroke-width="1.5"/>
+          <path d="M6 1.5v3M12 1.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">ปฏิทินการจอง</span>
+      </a>
+      <a href="booking.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7.5" stroke="white" stroke-width="1.5"/>
+          <path d="M9 5.5v7M5.5 9h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">จองห้องประชุม</span>
+      </a>
+      <a href="my-bookings.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="white" stroke-width="1.5"/>
+          <path d="M6 6.5h6M6 9.5h6M6 12.5h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">รายการจองของฉัน</span>
+      </a>
+      <a href="profile.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="6.5" r="3.5" stroke="white" stroke-width="1.5"/>
+          <path d="M2 16.5c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">โปรไฟล์</span>
+      </a>
+    </nav>
+
+    <div class="sb-user">
+      <div class="sb-user-info">
+        <div class="sb-avatar">สจ</div>
+        <div style="min-width:0;">
+          <p class="sb-name">นายสมชาย ใจดี</p>
+          <p class="sb-dept">ฝ่ายวิจัย</p>
+        </div>
+      </div>
+      <button class="sb-logout" onclick="DLD.logout()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 11l3-3-3-3M13 8H6" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        ออกจากระบบ
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main Area ─────────────────────────────────────────── -->
+  <div id="main">
+
+    <!-- ── Navbar ─────────────────────────────────────────── -->
+    <header id="navbar">
+      <button id="hamburger" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 6h14M3 10h14M3 14h14" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="breadcrumb">
+        <span class="breadcrumb-home">ระบบจองห้องประชุม</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-cur">ปฏิทินการจอง</span>
+      </div>
+      <div class="nb-spacer"></div>
+      <div class="nb-wrap">
+        <button class="nb-btn" aria-label="การแจ้งเตือน">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3.2L2 13.5h14l-1.5-2.8V7.5A5.5 5.5 0 009 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M7 14.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+        <div class="nb-badge">3</div>
+      </div>
+      <div class="ub-av">สจ</div>
+    </header>
+
+    <!-- ── Content ─────────────────────────────────────────── -->
+    <main id="content">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">ปฏิทินการจอง</h1>
+          <p class="page-sub">ดูตารางการจองทั้งหมดของระบบ</p>
+        </div>
+        <a href="booking.html" class="btn-primary-sm">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="6.5" stroke="white" stroke-width="1.4"/>
+            <path d="M7 4v6M4 7h6" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          จองห้องประชุม
+        </a>
+      </div>
+
+      <!-- Controls bar -->
+      <div class="controls-bar">
+        <!-- Month/week/day nav -->
+        <div class="nav-group">
+          <button id="btn-prev" class="nav-btn" aria-label="ก่อนหน้า">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span id="cal-header-label"></span>
+          <button id="btn-next" class="nav-btn" aria-label="ถัดไป">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-divider"></div>
+          <button id="btn-today" class="today-btn">วันนี้</button>
+        </div>
+
+        <!-- View toggle -->
+        <div class="view-toggle">
+          <button id="vt-month" class="vt-btn active">เดือน</button>
+          <button id="vt-week"  class="vt-btn">สัปดาห์</button>
+          <button id="vt-day"   class="vt-btn">วัน</button>
+        </div>
+
+        <div class="nb-spacer"></div>
+
+        <!-- Filters -->
+        <div class="filter-wrap">
+          <div class="filter-select-wrap">
+            <div class="fi">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="7" width="12" height="8" rx="1" stroke="#718096" stroke-width="1.4"/>
+                <path d="M1 7L8 2l7 5" stroke="#718096" stroke-width="1.4" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <select id="room-filter" class="filter-select">
+              <option value="">ทุกห้อง</option>
+            </select>
+            <div class="filter-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M3 4l3 3 3-3" stroke="#718096" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="filter-select-wrap">
+            <div class="fi">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <rect x="2.5" y="3" width="11" height="2.5" rx="1" stroke="#718096" stroke-width="1.3"/>
+                <circle cx="8" cy="12" r="2.5" stroke="#718096" stroke-width="1.3"/>
+                <path d="M8 7v2.5" stroke="#718096" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <select id="status-filter" class="filter-select">
+              <option value="">สถานะทั้งหมด</option>
+              <option value="pending">รอดำเนินการ</option>
+              <option value="approved">อนุมัติแล้ว</option>
+              <option value="rejected">ปฏิเสธ</option>
+              <option value="cancelled">ยกเลิก</option>
+            </select>
+            <div class="filter-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M3 4l3 3 3-3" stroke="#718096" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar card -->
+      <div class="cal-card">
+
+        <!-- Day headers (month view) -->
+        <div class="month-day-headers" id="month-day-headers">
+          <div class="month-day-header">จ</div>
+          <div class="month-day-header">อ</div>
+          <div class="month-day-header">พ</div>
+          <div class="month-day-header">พฤ</div>
+          <div class="month-day-header">ศ</div>
+          <div class="month-day-header weekend">ส</div>
+          <div class="month-day-header weekend">อา</div>
+        </div>
+
+        <!-- Month grid -->
+        <div id="cal-month"></div>
+
+        <!-- Week grid -->
+        <div id="cal-week"></div>
+
+        <!-- Day grid -->
+        <div id="cal-day"></div>
+
+      </div>
+
+      <!-- Day detail panel -->
+      <div id="day-detail">
+        <div class="detail-header">
+          <h3 class="detail-date-title" id="day-detail-date"></h3>
+          <div class="detail-actions">
+            <a id="day-detail-book" href="booking.html" class="btn-primary-sm" style="padding:7px 14px;font-size:12px;">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="6.5" stroke="white" stroke-width="1.4"/>
+                <path d="M7 4v6M4 7h6" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              จองวันนี้
+            </a>
+            <button id="day-detail-close" class="detail-close" aria-label="ปิด">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="day-detail-list"></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#F59E0B;"></div>
+          รอดำเนินการ
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#10B981;"></div>
+          อนุมัติแล้ว
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#EF4444;"></div>
+          ปฏิเสธ
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#9CA3AF;"></div>
+          ยกเลิก
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  'use strict';
+  checkAuth();
+  populateUserUI();
+
+  function $ (id) { return document.getElementById(id); }
+  function pad (h) { return String(h).padStart(2, '0') + ':00'; }
+  function dateKey (y, m, d) {
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  /* ── Data ─────────────────────────────────────────────── */
+  /*
+   * EVENTS จะถูกโหลดจาก API ตอน loadCalendar()
+   * รูปแบบ event: { id, room, roomName, date, start, end, title, status, bookedBy }
+   *   - start / end = เลขชั่วโมง (integer) เช่น 9, 11
+   *   - date = "YYYY-MM-DD"
+   */
+  var EVENTS = [];
+  var _loadedMonth = '';  // "YYYY-MM" เดือนล่าสุดที่โหลด
+
+  var STATUS = {
+    pending:   { label: 'รอดำเนินการ', color: '#F59E0B', bg: '#FEF3C7', text: '#92400E' },
+    approved:  { label: 'อนุมัติแล้ว', color: '#10B981', bg: '#D1FAE5', text: '#065F46' },
+    rejected:  { label: 'ปฏิเสธ',      color: '#EF4444', bg: '#FEE2E2', text: '#991B1B' },
+    cancelled: { label: 'ยกเลิก',      color: '#9CA3AF', bg: '#F3F4F6', text: '#374151' },
+  };
+
+  var MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var DAYS_TH   = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  var DAYS_SHORT = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+  /* ── State ────────────────────────────────────────────── */
+  var state = {
+    viewMode    : 'month',
+    curYear     : 2026,
+    curMonth    : 5,   // 0-indexed, June = 5
+    curDay      : 27,  // today = 27 June 2026
+    selectedDay : null,
+    filterRoom  : '',
+    filterStatus: '',
+  };
+
+  var TODAY_KEY = dateKey(2026, 5, 27);
+
+  /* ── Filter events ────────────────────────────────────── */
+  function getEvents (dk) {
+    return EVENTS.filter(function (e) {
+      if (e.date !== dk) return false;
+      if (state.filterRoom   && e.room   !== state.filterRoom)   return false;
+      if (state.filterStatus && e.status !== state.filterStatus) return false;
+      return true;
+    });
+  }
+
+  /* ── Monday of week ───────────────────────────────────── */
+  function getMondayOfWeek (y, m, d) {
+    var dt  = new Date(y, m, d);
+    var dow = dt.getDay(); // 0=Sun
+    var diff = (dow + 6) % 7; // Mon=0
+    return new Date(y, m, d - diff);
+  }
+
+  /* ── Header label ─────────────────────────────────────── */
+  function updateLabel () {
+    var s = state;
+    var lbl;
+    if (s.viewMode === 'month') {
+      lbl = MONTHS_TH[s.curMonth] + ' ' + (s.curYear + 543);
+    } else if (s.viewMode === 'week') {
+      var mon = getMondayOfWeek(s.curYear, s.curMonth, s.curDay);
+      var sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+      lbl = mon.getDate() + ' – ' + sun.getDate() + ' ' + MONTHS_TH[mon.getMonth()] + ' ' + (mon.getFullYear() + 543);
+    } else {
+      lbl = 'วัน' + DAYS_TH[new Date(s.curYear, s.curMonth, s.curDay).getDay()] + ' ' + s.curDay + ' ' + MONTHS_TH[s.curMonth] + ' ' + (s.curYear + 543);
+    }
+    $('cal-header-label').textContent = lbl;
+  }
+
+  /* ── View toggle styling ──────────────────────────────── */
+  function updateViewBtns () {
+    ['month','week','day'].forEach(function (m) {
+      var btn = $('vt-' + m);
+      btn.classList.toggle('active', m === state.viewMode);
+    });
+    /* Show/hide month-day-headers */
+    $('month-day-headers').style.display = state.viewMode === 'month' ? '' : 'none';
+  }
+
+  /* ════════ MONTH VIEW ════════ */
+  function renderMonth () {
+    var s  = state;
+    var grid = $('cal-month');
+    grid.innerHTML = '';
+
+    var firstDay    = new Date(s.curYear, s.curMonth, 1).getDay();
+    var offset      = (firstDay + 6) % 7; // Mon-first
+    var daysInMonth = new Date(s.curYear, s.curMonth + 1, 0).getDate();
+    var total       = Math.ceil((offset + daysInMonth) / 7) * 7;
+
+    for (var i = 0; i < total; i++) {
+      var dayNum = i - offset + 1;
+      var cell   = document.createElement('div');
+
+      if (i < offset || dayNum > daysInMonth) {
+        cell.className = 'cal-cell-empty';
+        grid.appendChild(cell);
+        continue;
+      }
+
+      var dk      = dateKey(s.curYear, s.curMonth, dayNum);
+      var evts    = getEvents(dk);
+      var isToday = dk === TODAY_KEY;
+      var dow     = (i % 7); // 0=Mon, 5=Sat, 6=Sun
+
+      cell.className = 'cal-cell' + (isToday ? ' is-today' : '');
+      cell.dataset.date = dk;
+      cell.dataset.day  = String(dayNum);
+
+      /* Day number */
+      var numEl = document.createElement('span');
+      numEl.className = 'cal-day-num' + (isToday ? ' is-today' : '') + (dow >= 5 ? ' weekend' : '');
+      numEl.textContent = dayNum;
+      cell.appendChild(numEl);
+
+      /* Event bars */
+      if (evts.length > 0) {
+        var wrap = document.createElement('div');
+        wrap.className = 'cal-events';
+        evts.slice(0, 3).forEach(function (ev) {
+          var bar = document.createElement('div');
+          bar.className = 'cal-event-bar';
+          bar.style.background = STATUS[ev.status].color;
+          bar.textContent = ev.title;
+          wrap.appendChild(bar);
+        });
+        if (evts.length > 3) {
+          var more = document.createElement('div');
+          more.className = 'cal-more';
+          more.textContent = '+' + (evts.length - 3) + ' เพิ่มเติม';
+          wrap.appendChild(more);
+        }
+        cell.appendChild(wrap);
+      }
+
+      /* Click → day detail */
+      cell.addEventListener('click', (function (cellEl, dkk) {
+        return function () {
+          document.querySelectorAll('.cal-cell.selected').forEach(function (c) { c.classList.remove('selected'); });
+          cellEl.classList.add('selected');
+          state.selectedDay = dkk;
+          showDayDetail(dkk);
+        };
+      }(cell, dk)));
+
+      grid.appendChild(cell);
+    }
+  }
+
+  /* ── Day detail panel ─────────────────────────────────── */
+  function showDayDetail (dk) {
+    var parts   = dk.split('-');
+    var y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
+    var dt      = new Date(y, m, d);
+    var evts    = getEvents(dk);
+
+    $('day-detail-date').textContent = 'วัน' + DAYS_TH[dt.getDay()] + 'ที่ ' + d + ' ' + MONTHS_TH[m] + ' ' + (y + 543);
+    $('day-detail-book').href = 'booking.html?date=' + dk;
+
+    var list = $('day-detail-list');
+    list.innerHTML = '';
+
+    if (evts.length === 0) {
+      list.innerHTML = '<div class="detail-empty">ไม่มีการจองในวันนี้</div>';
+    } else {
+      evts.forEach(function (ev) {
+        var st   = STATUS[ev.status];
+        var card = document.createElement('div');
+        card.className = 'detail-card';
+        card.innerHTML =
+          '<div class="detail-card-left" style="background:' + st.color + ';"></div>' +
+          '<div class="detail-card-body">' +
+            '<div class="detail-card-row">' +
+              '<span class="detail-card-title">' + ev.title + '</span>' +
+              '<span class="detail-badge" style="background:' + st.bg + ';color:' + st.text + ';">' + st.label + '</span>' +
+            '</div>' +
+            '<div class="detail-card-meta">' +
+              '<span>' + ev.roomName + '</span>' +
+              '<span class="detail-dot">·</span>' +
+              '<span>' + pad(ev.start) + ' – ' + pad(ev.end) + '</span>' +
+              '<span class="detail-dot">·</span>' +
+              '<span>' + ev.bookedBy + '</span>' +
+            '</div>' +
+          '</div>';
+        list.appendChild(card);
+      });
+    }
+
+    $('day-detail').style.display = '';
+    $('day-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ════════ WEEK VIEW ════════ */
+  function renderWeek () {
+    var s    = state;
+    var grid = $('cal-week');
+    grid.innerHTML = '';
+
+    var HOUR_H = 52;
+    var TIME_W = 60;
+    var hours  = [];
+    for (var h = 8; h <= 17; h++) hours.push(h);
+
+    var monday   = getMondayOfWeek(s.curYear, s.curMonth, s.curDay);
+    var dayInfos = [];
+    for (var i = 0; i < 7; i++) {
+      var dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      dayInfos.push({
+        dt  : dt,
+        dk  : dateKey(dt.getFullYear(), dt.getMonth(), dt.getDate()),
+        dow : dt.getDay(), // 0=Sun
+      });
+    }
+
+    /* Header */
+    var header = document.createElement('div');
+    header.className = 'week-header';
+    var corner = document.createElement('div');
+    corner.className = 'week-time-col week-header-cell';
+    header.appendChild(corner);
+    dayInfos.forEach(function (di) {
+      var hc = document.createElement('div');
+      hc.className = 'week-day-col week-header-cell';
+      var isToday = di.dk === TODAY_KEY;
+      var shortNames = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+      hc.innerHTML =
+        '<div class="week-day-label">' +
+          '<span class="week-day-short">' + shortNames[di.dow] + '</span>' +
+          '<span class="week-day-num' + (isToday ? ' is-today' : '') + '">' + di.dt.getDate() + '</span>' +
+        '</div>';
+      header.appendChild(hc);
+    });
+    grid.appendChild(header);
+
+    /* Body */
+    var body = document.createElement('div');
+    body.className = 'week-body';
+    body.style.position = 'relative';
+
+    /* Hour rows */
+    hours.forEach(function (h) {
+      var row = document.createElement('div');
+      row.className = 'week-row';
+      var tl = document.createElement('div');
+      tl.className = 'week-time-col week-time-label';
+      tl.textContent = pad(h);
+      row.appendChild(tl);
+      for (var j = 0; j < 7; j++) {
+        var hc = document.createElement('div');
+        hc.className = 'week-day-col week-hour-cell';
+        row.appendChild(hc);
+      }
+      body.appendChild(row);
+    });
+
+    /* Event blocks — positioned after rows are added */
+    dayInfos.forEach(function (di, colIdx) {
+      var evts = getEvents(di.dk);
+      evts.forEach(function (ev) {
+        var st    = STATUS[ev.status];
+        var block = document.createElement('div');
+        block.className = 'week-event-block';
+        block.style.cssText =
+          'top:'    + ((ev.start - 8) * HOUR_H) + 'px;' +
+          'height:' + ((ev.end - ev.start) * HOUR_H - 4) + 'px;' +
+          'left:calc(' + TIME_W + 'px + ' + (colIdx / 7) + ' * (100% - ' + TIME_W + 'px) + 4px);' +
+          'width:calc((100% - ' + TIME_W + 'px) / 7 - 8px);' +
+          'background:' + st.bg + ';' +
+          'border-left:3px solid ' + st.color + ';';
+        block.innerHTML =
+          '<div style="font-size:10px;font-weight:700;color:' + st.text + ';line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + ev.title + '</div>' +
+          '<div style="font-size:9px;color:' + st.text + ';opacity:0.75;margin-top:1px;">' + pad(ev.start) + '–' + pad(ev.end) + '</div>';
+        body.appendChild(block);
+      });
+    });
+
+    grid.appendChild(body);
+  }
+
+  /* ════════ DAY VIEW ════════ */
+  function renderDay () {
+    var s    = state;
+    var grid = $('cal-day');
+    grid.innerHTML = '';
+
+    var HOUR_H = 64;
+    var TIME_W = 60;
+    var hours  = [];
+    for (var h = 8; h <= 17; h++) hours.push(h);
+
+    var dk   = dateKey(s.curYear, s.curMonth, s.curDay);
+    var evts = getEvents(dk);
+    var dt   = new Date(s.curYear, s.curMonth, s.curDay);
+
+    /* Day title bar */
+    var titleBar = document.createElement('div');
+    titleBar.className = 'day-header-row';
+    titleBar.innerHTML = '<span class="day-title">วัน' + DAYS_TH[dt.getDay()] + ' ' + s.curDay + ' ' + MONTHS_TH[s.curMonth] + ' ' + (s.curYear + 543) + '</span>';
+    grid.appendChild(titleBar);
+
+    /* Time grid */
+    var timeGrid = document.createElement('div');
+    timeGrid.className = 'day-time-grid';
+    timeGrid.style.position = 'relative';
+
+    hours.forEach(function (h) {
+      var row = document.createElement('div');
+      row.className = 'day-hour-row';
+      var tl = document.createElement('div');
+      tl.className = 'day-time-label';
+      tl.textContent = pad(h);
+      var hc = document.createElement('div');
+      hc.className = 'day-hour-cell';
+      row.appendChild(tl);
+      row.appendChild(hc);
+      timeGrid.appendChild(row);
+    });
+
+    /* Overlay for event blocks */
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:absolute;top:0;left:' + TIME_W + 'px;right:0;bottom:0;pointer-events:none;';
+
+    evts.forEach(function (ev) {
+      var st    = STATUS[ev.status];
+      var block = document.createElement('div');
+      block.className = 'day-event-block';
+      block.style.cssText =
+        'top:'    + ((ev.start - 8) * HOUR_H + 2) + 'px;' +
+        'left:8px;right:8px;' +
+        'height:' + ((ev.end - ev.start) * HOUR_H - 4) + 'px;' +
+        'background:' + st.bg + ';' +
+        'border-left:4px solid ' + st.color + ';' +
+        'pointer-events:auto;';
+      block.innerHTML =
+        '<div style="font-size:13px;font-weight:600;color:' + st.text + ';margin-bottom:2px;">' + ev.title + '</div>' +
+        '<div style="font-size:11px;color:' + st.text + ';opacity:0.8;">' + ev.roomName + '  ·  ' + pad(ev.start) + ' – ' + pad(ev.end) + '</div>' +
+        '<div style="font-size:11px;color:' + st.text + ';opacity:0.65;margin-top:2px;">' + ev.bookedBy + '</div>';
+      overlay.appendChild(block);
+    });
+
+    if (evts.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'day-empty';
+      empty.innerHTML =
+        '<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2" y="5" width="28" height="24" rx="3" stroke="#CBD5E0" stroke-width="1.8"/><path d="M2 12h28" stroke="#CBD5E0" stroke-width="1.8"/><path d="M10 3v4M22 3v4" stroke="#CBD5E0" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+        '<p>ไม่มีการจองในวันนี้</p>' +
+        '<a href="booking.html" style="margin-top:8px;font-size:12px;color:#1B4F72;font-weight:600;text-decoration:none;">+ จองห้องประชุม</a>';
+      overlay.appendChild(empty);
+    }
+
+    timeGrid.appendChild(overlay);
+    grid.appendChild(timeGrid);
+  }
+
+  /* ════════ MAIN RENDER ════════ */
+  function render () {
+    updateLabel();
+    updateViewBtns();
+
+    var showMonth = state.viewMode === 'month';
+    var showWeek  = state.viewMode === 'week';
+    var showDay   = state.viewMode === 'day';
+
+    $('cal-month').style.display = showMonth ? '' : 'none';
+    $('cal-week').style.display  = showWeek  ? 'block' : 'none';
+    $('cal-day').style.display   = showDay   ? 'block' : 'none';
+
+    if (!showMonth) {
+      $('day-detail').style.display = 'none';
+      state.selectedDay = null;
+    }
+
+    if (showMonth) renderMonth();
+    else if (showWeek) renderWeek();
+    else renderDay();
+  }
+
+  /* ── Load room filter options from API ───────────────── */
+  async function loadRoomFilter () {
+    try {
+      var rooms = await apiGet('/rooms');
+      var sel = $('room-filter');
+      (rooms || []).forEach(function (r) {
+        var opt = document.createElement('option');
+        opt.value = r._id;
+        opt.textContent = r.name;
+        sel.appendChild(opt);
+      });
+    } catch (e) { /* ถ้าโหลดไม่ได้ ก็แค่ไม่มี option */ }
+  }
+
+  /* ── Load calendar from API ───────────────────────────── */
+  /*
+   * เรียก GET /api/reports/calendar?month=YYYY-MM
+   * Server คืน array ของ Booking documents:
+   *   [{ _id, room:{name}, user:{prefix,firstName,lastName},
+   *      title, date:"YYYY-MM-DD", startTime:"09:00", endTime:"11:00",
+   *      status, attendees, purpose }]
+   *
+   * แปลงเป็น EVENTS format โดย:
+   *   room     = room._id หรือ "" (ใช้แค่ filter บางอัน)
+   *   roomName = room.name
+   *   start    = parseInt(startTime) → 9
+   *   end      = parseInt(endTime)   → 11
+   *   bookedBy = prefix + firstName + " " + lastName
+   */
+  async function loadCalendar (year, month) {
+    var monthKey = year + '-' + String(month + 1).padStart(2, '0');
+    if (_loadedMonth === monthKey) return;  // ข้อมูลเดือนนี้มีอยู่แล้ว
+
+    try {
+      var data = await apiGet('/reports/calendar?month=' + monthKey);
+      _loadedMonth = monthKey;
+      EVENTS = (Array.isArray(data) ? data : []).map(function (b) {
+        var u = b.user || {};
+        var r = b.room || {};
+        return {
+          id:       b._id,
+          room:     r._id || '',
+          roomName: r.name || 'ห้องประชุม',
+          date:     b.date || '',
+          start:    parseInt((b.startTime || '08:00').split(':')[0], 10),
+          end:      parseInt((b.endTime   || '09:00').split(':')[0], 10),
+          title:    b.title || '(ไม่มีชื่อ)',
+          status:   b.status || 'pending',
+          bookedBy: (u.prefix || '') + (u.firstName || '') + ' ' + (u.lastName || '')
+        };
+      });
+    } catch (e) {
+      console.error('loadCalendar error:', e);
+      // ถ้า API ล้มเหลว ยังแสดง calendar ได้ (EVENTS = [])
+    }
+  }
+
+  /*
+   * loadAndRender — โหลดข้อมูลเดือนปัจจุบัน (ถ้าจำเป็น) แล้ว render
+   * ใช้แทน render() ในกรณีที่เดือนอาจเปลี่ยน
+   */
+  async function loadAndRender () {
+    await loadCalendar(state.curYear, state.curMonth);
+    render();
+  }
+
+  /* ── Navigation ───────────────────────────────────────── */
+  function navigate (delta) {
+    var s  = state;
+    var dt;
+    if (s.viewMode === 'month') {
+      var newMonth = s.curMonth + delta;
+      if (newMonth < 0)  { s.curYear--; s.curMonth = 11; }
+      else if (newMonth > 11) { s.curYear++; s.curMonth = 0; }
+      else s.curMonth = newMonth;
+    } else if (s.viewMode === 'week') {
+      dt = new Date(s.curYear, s.curMonth, s.curDay + delta * 7);
+      s.curYear = dt.getFullYear(); s.curMonth = dt.getMonth(); s.curDay = dt.getDate();
+    } else {
+      dt = new Date(s.curYear, s.curMonth, s.curDay + delta);
+      s.curYear = dt.getFullYear(); s.curMonth = dt.getMonth(); s.curDay = dt.getDate();
+    }
+    loadAndRender();
+  }
+
+  /* ── Event listeners ──────────────────────────────────── */
+  $('btn-prev').addEventListener('click',  function () { navigate(-1); });
+  $('btn-next').addEventListener('click',  function () { navigate(+1); });
+  $('btn-today').addEventListener('click', function () {
+    var now = new Date();
+    state.curYear = now.getFullYear(); state.curMonth = now.getMonth(); state.curDay = now.getDate();
+    loadAndRender();
+  });
+
+  ['month','week','day'].forEach(function (m) {
+    $('vt-' + m).addEventListener('click', function () {
+      state.viewMode = m;
+      render();
+    });
+  });
+
+  $('room-filter').addEventListener('change', function (e) {
+    state.filterRoom = e.target.value;
+    render();
+    if (state.selectedDay) showDayDetail(state.selectedDay);
+  });
+
+  $('status-filter').addEventListener('change', function (e) {
+    state.filterStatus = e.target.value;
+    render();
+    if (state.selectedDay) showDayDetail(state.selectedDay);
+  });
+
+  $('day-detail-close').addEventListener('click', function () {
+    $('day-detail').style.display = 'none';
+    state.selectedDay = null;
+    document.querySelectorAll('.cal-cell.selected').forEach(function (c) {
+      c.classList.remove('selected');
+    });
+  });
+
+  /* ── Sidebar ──────────────────────────────────────────── */
+  var sidebar = $('sidebar');
+  var overlay = $('sidebar-overlay');
+
+  window.toggleSidebar = function () {
+    var collapsed = sidebar.classList.toggle('collapsed');
+    overlay.classList.toggle('show', !collapsed);
+  };
+  window.closeSidebar = function () {
+    sidebar.classList.add('collapsed');
+    overlay.classList.remove('show');
+  };
+
+  if (window.innerWidth < 1024) sidebar.classList.add('collapsed');
+  window.addEventListener('resize', function () {
+    if (window.innerWidth >= 1024) {
+      sidebar.classList.remove('collapsed');
+      overlay.classList.remove('show');
+    }
+  });
+
+  /* ── State: กำหนดวันนี้จากเวลาจริง ──────────────────── */
+  var _now = new Date();
+  state.curYear  = _now.getFullYear();
+  state.curMonth = _now.getMonth();
+  state.curDay   = _now.getDate();
+  TODAY_KEY = dateKey(_now.getFullYear(), _now.getMonth(), _now.getDate());
+
+  /* ── Init ─────────────────────────────────────────────── */
+  loadRoomFilter();   // โหลด dropdown ห้องจาก API (async, ไม่บล็อก)
+  loadAndRender();
+
+}());
+</script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบจองห้องประชุม — สำนักเทคโนโลยีชีวภัณฑ์สัตว์</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       DESIGN SYSTEM — ระบบจองห้องประชุม
+       สำนักเทคโนโลยีชีวภัณฑ์สัตว์
+    ========================================== */
+    :root {
+      --primary:     #1B4F72;
+      --primary-dark:#163d58;
+      --secondary:   #2E86AB;
+      --accent:      #17A589;
+      --bg:          #F0F4F8;
+      --bg-alt:      #E8F0F7;
+      --surface:     #FFFFFF;
+      --surface-2:   #F8FAFC;
+      --text-dark:   #1A2332;
+      --text-mid:    #4A5568;
+      --text-light:  #718096;
+      --text-muted:  #A0AEC0;
+      --border:      #E2E8F0;
+      --danger:      #C0392B;
+      --warning:     #D68910;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+      --shadow-md:   0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
+      --shadow-lg:   0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.08);
+      --radius-card: 12px;
+      --radius-btn:  8px;
+      --transition:  200ms ease;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text-dark);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ==========================================
+       LAYOUT
+    ========================================== */
+    .page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* ==========================================
+       HEADER
+    ========================================== */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .logo {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 4px 12px rgba(27, 79, 114, 0.25);
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 12px;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      font-size: 15px;
+      color: var(--text-light);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* ==========================================
+       QUICK ACCESS CARDS
+    ========================================== */
+    .quick-access {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 1100px;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+
+    .access-card {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+
+    .access-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .access-card__header {
+      padding: 28px;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    .access-card__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .access-card__icon--user  { background: #EBF5FB; }
+    .access-card__icon--admin { background: #FEF3C7; }
+
+    .access-card__header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 6px;
+    }
+
+    .access-card__header p {
+      font-size: 13px;
+      color: var(--text-light);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .access-card__body {
+      padding: 18px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Link-style button (outline) */
+    .btn-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border-radius: var(--radius-btn);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary);
+      border: 1px solid var(--border);
+      transition: background var(--transition), border-color var(--transition);
+      cursor: pointer;
+    }
+
+    .btn-link:hover {
+      background: #EBF5FB;
+      border-color: var(--primary);
+    }
+
+    /* Solid primary button */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--primary);
+      border-radius: var(--radius-btn);
+      font-size: 13px;
+      font-weight: 600;
+      color: #FFFFFF;
+      border: none;
+      transition: background var(--transition);
+      cursor: pointer;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .access-card__footer {
+      padding: 14px 28px;
+      background: var(--surface-2);
+      border-top: 1px solid var(--bg);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================
+       ALL PAGES GRID
+    ========================================== */
+    .all-pages {
+      max-width: 1100px;
+      width: 100%;
+      margin-bottom: 48px;
+    }
+
+    .all-pages h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 18px;
+    }
+
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .page-link {
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .page-link:hover {
+      border-color: var(--primary);
+      background: #EBF5FB;
+    }
+
+    /* ==========================================
+       INFO SECTION
+    ========================================== */
+    .info-section {
+      max-width: 1100px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      padding: 28px;
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-md);
+    }
+
+    .info-block h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-block ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 13px;
+      color: var(--text-light);
+      line-height: 1.9;
+    }
+
+    /* ==========================================
+       FOOTER
+    ========================================== */
+    .footer {
+      margin-top: 48px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    /* ==========================================
+       CHEVRON ICON (inline SVG helper)
+    ========================================== */
+    .chevron {
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+
+    /* ==========================================
+       RESPONSIVE — MOBILE < 768px
+    ========================================== */
+    @media (max-width: 767px) {
+      .page-wrapper { padding: 28px 16px 48px; }
+
+      .header { margin-bottom: 32px; }
+      .header h1 { font-size: 26px; }
+
+      /* Stack quick-access cards */
+      .quick-access { grid-template-columns: 1fr; }
+
+      /* 2-column page grid on mobile */
+      .pages-grid { grid-template-columns: repeat(2, 1fr); }
+
+      /* Stack info section */
+      .info-section { grid-template-columns: 1fr; gap: 20px; }
+
+      .access-card__body { padding: 14px 20px; }
+      .access-card__header { padding: 20px; }
+      .access-card__footer { padding: 12px 20px; }
+    }
+
+    /* TABLET: 768px – 1024px */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .pages-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect x="3" y="10" width="26" height="18" rx="2" fill="none" stroke="white" stroke-width="2"/>
+          <path d="M3 16h26" stroke="white" stroke-width="2"/>
+          <path d="M10 3v6M22 3v6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1>ระบบจองห้องประชุม</h1>
+      <p>บริหารจัดการการจองห้องประชุมอย่างมีประสิทธิภาพ<br>
+         เพื่อให้การใช้ห้องสัมมนาเรียบร้อยและเป็นระเบียบ</p>
+    </header>
+
+    <!-- ===== QUICK ACCESS CARDS ===== -->
+    <section class="quick-access" aria-label="Quick Access">
+
+      <!-- User Flow -->
+      <div class="access-card">
+        <div class="access-card__header">
+          <div class="access-card__icon access-card__icon--user">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="4" stroke="#1B4F72" stroke-width="1.5"/>
+              <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#1B4F72" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>สำหรับผู้ใช้ทั่วไป</h3>
+          <p>จองห้องประชุม ดูปฏิทิน และจัดการรายการจองของคุณ</p>
+        </div>
+        <div class="access-card__body">
+          <a href="login.html" class="btn-link">
+            🔐 เข้าสู่ระบบ
+            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="dashboard.html" class="btn-primary">
+            📊 ภาพรวม Dashboard
+            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+        <div class="access-card__footer">
+          • ปฏิทินการจอง &nbsp;• รายการของฉัน &nbsp;• โปรไฟล์
+        </div>
+      </div>
+
+      <!-- Admin Flow -->
+      <div class="access-card">
+        <div class="access-card__header">
+          <div class="access-card__icon access-card__icon--admin">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="9" cy="7" r="3" stroke="#D68910" stroke-width="1.5"/>
+              <path d="M3 21c0-3 2.239-5 6-5s6 2 6 5" stroke="#D68910" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M16 11h6M19 8v6" stroke="#D68910" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>สำหรับผู้บริหารระบบ</h3>
+          <p>อนุมัติการจอง จัดการห้อง ผู้ใช้ และรายงาน</p>
+        </div>
+        <div class="access-card__body">
+          <a href="login.html?role=admin" class="btn-link">
+            🔐 เข้าสู่ระบบ Admin
+            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="admin.html" class="btn-primary">
+            ⚙️ Admin Dashboard
+            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+        <div class="access-card__footer">
+          • อนุมัติการจอง &nbsp;• จัดการห้อง &nbsp;• จัดการผู้ใช้ &nbsp;• รายงาน
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== ALL PAGES GRID ===== -->
+    <section class="all-pages">
+      <h2>📄 หน้าทั้งหมด</h2>
+      <nav class="pages-grid" aria-label="All pages">
+        <a href="login.html"         class="page-link">🔐 Login</a>
+        <a href="login.html#register" class="page-link">📝 Register</a>
+        <a href="dashboard.html"     class="page-link">📊 Dashboard</a>
+        <a href="booking.html"       class="page-link">📅 Booking Form</a>
+        <a href="calendar.html"      class="page-link">📆 Calendar</a>
+        <a href="my-bookings.html"   class="page-link">📋 My Bookings</a>
+        <a href="reports.html"       class="page-link">📈 Reports</a>
+        <a href="profile.html"       class="page-link">👤 Profile</a>
+        <a href="admin.html"         class="page-link">⚙️ Admin</a>
+      </nav>
+    </section>
+
+    <!-- ===== INFO SECTION ===== -->
+    <section class="info-section" aria-label="System Information">
+      <div class="info-block">
+        <h3>✨ คุณสมบัติ</h3>
+        <ul>
+          <li>✓ จองห้องประชุมแบบเรียลไทม์</li>
+          <li>✓ ตรวจสอบความขัดแย้งการจอง</li>
+          <li>✓ ระบบอนุมัติโดยผู้ดูแล</li>
+          <li>✓ แจ้งเตือน Email อัตโนมัติ</li>
+          <li>✓ รายงานการใช้งาน</li>
+        </ul>
+      </div>
+      <div class="info-block">
+        <h3>🛠️ เทคโนโลยี</h3>
+        <ul>
+          <li>✓ HTML5 + CSS3 + JavaScript</li>
+          <li>✓ Node.js + Express Backend</li>
+          <li>✓ MongoDB Database</li>
+          <li>✓ JWT Authentication</li>
+          <li>✓ Responsive Design</li>
+        </ul>
+      </div>
+      <div class="info-block">
+        <h3>📊 สถิติระบบ</h3>
+        <ul>
+          <li>✓ 12 ห้องประชุม</li>
+          <li>✓ 48 ผู้ใช้ทั่วไป</li>
+          <li>✓ 156 การจองต่อเดือน</li>
+          <li>✓ 91% อัตราสำเร็จ</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+      <p>ระบบจองห้องประชุม &copy; 2567 &nbsp;•&nbsp; สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+    </footer>
+
+  </div><!-- /.page-wrapper -->
+</body>
+</html>

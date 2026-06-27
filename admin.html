@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — ระบบจองห้องประชุม</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:      #1B4F72;
+      --primary-dark: #163d58;
+      --secondary:    #2E86AB;
+      --accent:       #17A589;
+      --bg:           #F0F4F8;
+      --surface:      #FFFFFF;
+      --surface-2:    #F8FAFC;
+      --text-dark:    #1A2332;
+      --text-mid:     #4A5568;
+      --text-light:   #718096;
+      --text-muted:   #A0AEC0;
+      --border:       #E2E8F0;
+      --danger:       #C0392B;
+      --warning:      #D68910;
+      --radius:       12px;
+      --radius-sm:    8px;
+      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.1);
+      --transition:   0.2s ease;
+    }
+
+    body {
+      font-family: 'Geist', sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: var(--primary);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0;
+      z-index: 200;
+      transition: transform var(--transition);
+    }
+    .sidebar.collapsed { transform: translateX(-240px); }
+
+    .sidebar-brand {
+      padding: 18px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .brand-row { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,.15);
+      border-radius: 10px; border: 1px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .brand-name { font-size: 13px; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; }
+    .brand-sub  { font-size: 10px; color: rgba(255,255,255,.55); margin: 2px 0 0; }
+    .admin-badge {
+      display: inline-block; margin-top: 8px;
+      background: rgba(239,68,68,.25); border: 1px solid rgba(239,68,68,.5);
+      color: #FCA5A5; border-radius: 4px; font-size: 10px; font-weight: 700;
+      padding: 2px 7px; letter-spacing: .05em; text-transform: uppercase;
+    }
+
+    .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      color: rgba(255,255,255,.35); padding: 10px 20px 5px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 20px; width: 100%;
+      color: rgba(255,255,255,.68); font-size: 13.5px; font-weight: 400;
+      cursor: pointer; border: none; background: transparent;
+      font-family: inherit; text-decoration: none;
+      transition: background var(--transition), color var(--transition);
+      position: relative;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-item.active {
+      background: rgba(255,255,255,.15); color: rgba(255,255,255,.96); font-weight: 600;
+    }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 5px; bottom: 5px;
+      width: 3px; border-radius: 0 3px 3px 0; background: rgba(255,255,255,.88);
+    }
+    .nav-item svg { flex-shrink: 0; }
+    .nav-badge {
+      position: absolute; right: 14px;
+      min-width: 18px; height: 18px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; color: #fff;
+      border: 2px solid var(--primary); padding: 0 3px;
+    }
+    .nav-badge.red    { background: #C0392B; }
+    .nav-badge.yellow { background: #F59E0B; }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+    .user-footer-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .user-avatar-sm {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .user-footer-name  { font-size: 13px; font-weight: 600; color: #fff; }
+    .user-footer-role  { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.08); border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; color: rgba(255,255,255,.7);
+      transition: background var(--transition);
+    }
+    .logout-btn:hover { background: rgba(255,255,255,.15); }
+
+    /* ── OVERLAY ─────────────────────────────── */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; z-index: 190;
+      background: rgba(0,0,0,.45);
+    }
+    .sidebar-overlay.visible { display: block; }
+
+    /* ── MAIN ────────────────────────────────── */
+    .main {
+      margin-left: 240px; flex: 1; display: flex; flex-direction: column;
+      min-height: 100vh; transition: margin-left var(--transition);
+    }
+    .main.expanded { margin-left: 0; }
+
+    /* ── NAVBAR ──────────────────────────────── */
+    .navbar {
+      height: 64px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 24px; gap: 14px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .hamburger {
+      width: 38px; height: 38px; border: none; background: none;
+      border-radius: var(--radius-sm); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-mid); transition: background var(--transition);
+    }
+    .hamburger:hover { background: var(--bg); }
+    .breadcrumb { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .bc-parent { font-size: 13px; color: var(--text-muted); }
+    .bc-sep    { color: #D2D6DC; }
+    .bc-current{ font-size: 13px; font-weight: 600; color: var(--text-dark); }
+    .navbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 38px; height: 38px; border: none; background: none;
+      border-radius: var(--radius-sm); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; color: var(--text-mid);
+      transition: background var(--transition); position: relative;
+    }
+    .icon-btn:hover { background: var(--bg); }
+    .notif-count {
+      position: absolute; top: 5px; right: 5px;
+      min-width: 14px; height: 14px; background: var(--danger);
+      border-radius: 7px; border: 1.5px solid var(--surface);
+      font-size: 7px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center; padding: 0 2px;
+    }
+    .navbar-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* ── CONTENT ─────────────────────────────── */
+    .content { flex: 1; padding: 28px; max-width: 1200px; }
+
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--text-dark); }
+    .section-sub   { font-size: 13px; color: var(--text-light); margin-top: 3px; }
+
+    /* ── ADMIN SECTION VISIBILITY ────────────── */
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+
+    /* ── STAT CARDS ──────────────────────────── */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface); border-radius: 10px; padding: 18px 16px;
+      box-shadow: var(--shadow); border-left: 4px solid var(--border);
+    }
+    .stat-label { font-size: 11px; font-weight: 500; color: var(--text-light); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+    .stat-value { font-size: 26px; font-weight: 700; margin-bottom: 3px; }
+    .stat-unit  { font-size: 12px; color: var(--text-muted); }
+
+    /* ── CARD / TABLE COMMON ─────────────────── */
+    .panel {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .panel-title { font-size: 15px; font-weight: 600; color: var(--text-dark); }
+
+    /* ── TABLE ───────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    th { text-align: left; padding: 11px 18px; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+    td { padding: 13px 18px; color: var(--text-dark); border-bottom: 1px solid #F5F7FA; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #FAFBFC; }
+
+    /* ── STATUS BADGES ───────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+      border: 1px solid; white-space: nowrap;
+    }
+    .badge-dot-sm { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge-pending  { background: #FEF3C7; color: #92400E; border-color: #F59E0B; }
+    .badge-approved { background: #D1FAE5; color: #065F46; border-color: #10B981; }
+    .badge-rejected { background: #FEE2E2; color: #991B1B; border-color: #EF4444; }
+    .badge-cancelled{ background: #F3F4F6; color: #374151; border-color: #9CA3AF; }
+    .badge-active   { background: #DBEAFE; color: #1E40AF; border-color: #3B82F6; }
+    .badge-inactive { background: #FEF9C3; color: #713F12; border-color: #CA8A04; }
+    .badge-user-pending { background: #FEF3C7; color: #92400E; border-color: #F59E0B; }
+
+    /* ── BUTTONS ─────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: inherit; border: 1px solid; transition: all var(--transition);
+    }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .btn-success { background: #065F46; color: #fff; border-color: #10B981; }
+    .btn-success:hover { background: #047857; }
+    .btn-danger  { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-danger:hover { background: #A93226; }
+    .btn-outline {
+      background: var(--surface); color: var(--text-mid); border-color: var(--border);
+    }
+    .btn-outline:hover { background: var(--bg); color: var(--text-dark); border-color: var(--text-muted); }
+    .btn-ghost {
+      background: none; color: var(--text-mid); border-color: transparent;
+    }
+    .btn-ghost:hover { background: var(--bg); color: var(--text-dark); border-color: var(--border); }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+    .btn-xs { padding: 4px 9px; font-size: 11px; }
+    .btn-icon {
+      width: 30px; height: 30px; padding: 0; border-radius: var(--radius-sm);
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; color: var(--text-muted); border: 1px solid transparent; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-icon:hover { background: var(--bg); color: var(--text-dark); border-color: var(--border); }
+    .btn-icon.danger:hover { background: #FEE2E2; color: var(--danger); border-color: #FCA5A5; }
+
+    /* ── TABS (inner filter) ─────────────────── */
+    .inner-tabs { display: flex; gap: 3px; overflow-x: auto; }
+    .inner-tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 13px; border-radius: var(--radius-sm); border: none;
+      background: none; font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--text-mid); cursor: pointer; white-space: nowrap;
+      transition: background var(--transition), color var(--transition);
+    }
+    .inner-tab:hover { background: var(--bg); }
+    .inner-tab.active { background: var(--primary); color: #fff; }
+    .tab-cnt {
+      min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px;
+      background: rgba(0,0,0,.1); font-size: 10px; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .inner-tab.active .tab-cnt { background: rgba(255,255,255,.25); }
+
+    /* ── APPROVAL CARDS ──────────────────────── */
+    .approval-list { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; }
+    .approval-card {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px;
+      display: flex; gap: 16px; align-items: flex-start;
+      transition: box-shadow var(--transition);
+    }
+    .approval-card:hover { box-shadow: var(--shadow-md); }
+    .ac-left { flex: 1; min-width: 0; }
+    .ac-row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .ac-requester { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+    .ac-info { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 8px; }
+    .ac-info-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--text-mid);
+    }
+    .ac-info-item svg { color: var(--text-muted); }
+    .ac-title { font-size: 13px; font-weight: 500; color: var(--text-dark); margin-bottom: 2px; }
+    .ac-right {
+      display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+      align-items: flex-end;
+    }
+
+    /* ── REJECTION BOX ───────────────────────── */
+    .reject-reason-box {
+      background: #FFF5F5; border: 1px solid #FEB2B2; border-radius: var(--radius-sm);
+      padding: 10px 14px; margin-top: 8px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .reject-reason-box svg { color: #C53030; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── ROOM CARDS ──────────────────────────── */
+    .room-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px; padding: 20px;
+    }
+    .room-card {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+    .room-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .room-img {
+      height: 100px; background: linear-gradient(135deg, #1B4F72 0%, #2E86AB 100%);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .room-img svg { color: rgba(255,255,255,.35); }
+    .room-status-pill {
+      position: absolute; top: 8px; right: 8px;
+    }
+    .room-info { padding: 14px; }
+    .room-name { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
+    .room-cap  { font-size: 12px; color: var(--text-light); margin-bottom: 8px; }
+    .room-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+    .room-tag  {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      font-size: 10px; color: var(--text-mid); padding: 2px 7px;
+    }
+    .room-actions { display: flex; gap: 6px; }
+
+    /* ── USER TABLE ──────────────────────────── */
+    .user-name-cell { display: flex; align-items: center; gap: 10px; }
+    .user-avatar-tbl {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-tbl-name  { font-size: 13px; font-weight: 500; color: var(--text-dark); }
+    .user-tbl-email { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── SEARCH ──────────────────────────────── */
+    .search-bar {
+      position: relative; display: inline-flex; align-items: center;
+    }
+    .search-bar svg {
+      position: absolute; left: 9px; color: var(--text-muted); pointer-events: none;
+    }
+    .search-bar input {
+      padding: 7px 10px 7px 30px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 13px; font-family: inherit;
+      background: var(--bg); color: var(--text-dark); outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      width: 240px;
+    }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .search-bar input:focus {
+      border-color: var(--secondary); background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(46,134,171,.12);
+    }
+
+    /* ── MODAL ───────────────────────────────── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.45);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      width: 100%; animation: modalIn .18s ease;
+    }
+    .modal-sm { max-width: 420px; }
+    .modal-md { max-width: 520px; }
+    .modal-lg { max-width: 620px; }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.95) translateY(-6px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 20px 24px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 17px; font-weight: 600; color: var(--text-dark); }
+    .modal-close {
+      width: 28px; height: 28px; border: none; background: none; cursor: pointer;
+      border-radius: 6px; color: var(--text-muted); display: flex;
+      align-items: center; justify-content: center; transition: background var(--transition);
+    }
+    .modal-close:hover { background: var(--bg); color: var(--text-dark); }
+    .modal-body { padding: 16px 24px 8px; }
+    .modal-body p { font-size: 14px; color: var(--text-mid); line-height: 1.6; }
+    .modal-footer { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* ── FORM ELEMENTS ───────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 12px; font-weight: 600; color: var(--text-mid);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 14px; font-family: inherit;
+      background: var(--bg); color: var(--text-dark); outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--secondary); background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(46,134,171,.12);
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-check { display: flex; align-items: center; gap: 8px; }
+    .form-check input { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; }
+    .form-check label { font-size: 13px; color: var(--text-mid); cursor: pointer; }
+    .services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    /* Detail info box in modals */
+    .info-box {
+      background: var(--bg); border-radius: var(--radius-sm);
+      padding: 12px 16px; margin: 12px 0;
+    }
+    .info-row { display: flex; gap: 8px; font-size: 13px; color: var(--text-mid); }
+    .info-row + .info-row { margin-top: 6px; }
+    .info-lbl { color: var(--text-muted); min-width: 56px; flex-shrink: 0; }
+    .info-val  { color: var(--text-dark); font-weight: 500; }
+
+    /* ── EMPTY ───────────────────────────────── */
+    .empty-row td {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted); font-size: 14px;
+    }
+    .empty-cards {
+      text-align: center; padding: 60px 24px;
+      color: var(--text-muted); font-size: 14px;
+    }
+
+    /* ── TOAST ───────────────────────────────── */
+    .toast-container {
+      position: fixed; bottom: 28px; right: 28px; z-index: 999;
+      display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 500; max-width: 340px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.15);
+      pointer-events: auto; animation: toastIn .25s ease;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .toast.success { background: #065F46; color: #fff; }
+    .toast.error   { background: #991B1B; color: #fff; }
+    .toast.info    { background: #1B4F72; color: #fff; }
+    .toast svg { flex-shrink: 0; }
+
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media (max-width: 1023px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .stat-grid { grid-template-columns: repeat(3, 1fr); }
+      .content { padding: 20px 16px 32px; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .stat-grid { grid-template-columns: repeat(3, 1fr); }
+      .content { padding: 20px 20px 32px; }
+    }
+
+    @media (max-width: 767px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .section-head { flex-direction: column; align-items: flex-start; }
+      .panel-header { flex-direction: column; align-items: flex-start; }
+      .approval-card { flex-direction: column; }
+      .ac-right { flex-direction: row; align-items: center; }
+      .room-grid { grid-template-columns: 1fr; }
+      .search-bar input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
+<nav class="sidebar" id="sidebar" aria-label="Admin navigation">
+  <div class="sidebar-brand">
+    <div class="brand-row">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="8" width="16" height="11" rx="1" fill="rgba(255,255,255,.1)"
+                stroke="rgba(255,255,255,.9)" stroke-width="1.4"/>
+          <path d="M1 8L10 2l9 6" stroke="rgba(255,255,255,.9)" stroke-width="1.4" stroke-linejoin="round"/>
+          <rect x="8" y="13" width="4" height="6" rx=".5" fill="rgba(255,255,255,.8)"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand-name">Admin Panel</p>
+        <p class="brand-sub">ระบบจองห้องประชุม</p>
+      </div>
+    </div>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">จัดการระบบ</div>
+
+    <button class="nav-item active" data-nav="dashboard" id="navDashboard">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="1" y="7" width="4" height="9" rx="1" stroke="white" stroke-width="1.5"/>
+        <rect x="7" y="4" width="4" height="12" rx="1" stroke="white" stroke-width="1.5"/>
+        <rect x="13" y="9" width="4" height="7" rx="1" stroke="white" stroke-width="1.5"/>
+      </svg>
+      Dashboard
+    </button>
+
+    <button class="nav-item" data-nav="approvals" id="navApprovals">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="8" stroke="white" stroke-width="1.5"/>
+        <path d="M6 9.5l2 2 4-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      อนุมัติการจอง
+      <span class="nav-badge red" id="navApprovalsBadge">5</span>
+    </button>
+
+    <button class="nav-item" data-nav="rooms" id="navRooms">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="8" width="14" height="8" rx="1" stroke="white" stroke-width="1.5"/>
+        <path d="M2 8V4a1 1 0 011-1h12a1 1 0 011 1v4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M6 12v3M12 12v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      จัดการห้อง
+    </button>
+
+    <button class="nav-item" data-nav="users" id="navUsers">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <circle cx="7" cy="5.5" r="2.5" stroke="white" stroke-width="1.5"/>
+        <path d="M1.5 14c0-3 2-4.5 5.5-4.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="13.5" cy="11" r="2.5" stroke="white" stroke-width="1.4"/>
+        <path d="M13.5 13.5v4" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M11 16h5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      จัดการผู้ใช้
+      <span class="nav-badge yellow" id="navUsersBadge">3</span>
+    </button>
+
+    <div class="nav-section-label">รายงาน</div>
+
+    <a class="nav-item" href="reports.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="1" width="14" height="15" rx="1" stroke="white" stroke-width="1.5"/>
+        <path d="M5 9h2M5 12h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M8 13.5v-7M14 13.5v-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M11 6h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      รายงาน & สถิติ
+    </a>
+
+    <div class="nav-section-label">ผู้ใช้</div>
+
+    <a class="nav-item" href="dashboard.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <path d="M8 3H4a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M9 9l6-6M11 3h4v4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ไปหน้าผู้ใช้
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-footer-row">
+      <div class="user-avatar-sm">ผอ</div>
+      <div>
+        <div class="user-footer-name">นายอดิศร ผู้บริหาร</div>
+        <div class="user-footer-role">ผู้บริหารระบบ</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="DLD.logout()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M10 11l3-3-3-3M13 8H6" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ออกจากระบบ
+    </button>
+  </div>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ═══ MAIN ════════════════════════════════════════════════════ -->
+<div class="main" id="main">
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Toggle sidebar">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 6h14M3 10h14M3 14h14" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="breadcrumb">
+      <span class="bc-parent">Admin Panel</span>
+      <span class="bc-sep">/</span>
+      <span class="bc-current" id="breadcrumbCurrent">Dashboard</span>
+    </div>
+    <div class="navbar-right">
+      <button class="icon-btn" aria-label="การแจ้งเตือน">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3.2L2 13.5h14l-1.5-2.8V7.5A5.5 5.5 0 009 2z"
+                stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M7 14.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <span class="notif-count">8</span>
+      </button>
+      <div class="navbar-avatar" title="โปรไฟล์">ผอ</div>
+    </div>
+  </header>
+
+  <!-- ── Content ─────────────────────────────── -->
+  <div class="content">
+
+    <!-- ════ SECTION: DASHBOARD ════════════════ -->
+    <div class="admin-section active" id="sec-dashboard">
+      <div class="section-head">
+        <div>
+          <h1 class="section-title">Admin Dashboard</h1>
+          <p class="section-sub">ภาพรวมระบบจองห้องประชุม • 27 มิถุนายน 2569</p>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid" id="statGrid"></div>
+
+      <!-- Recent activity table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">กิจกรรมล่าสุด</div>
+          <button class="btn btn-ghost btn-sm" onclick="showSection('approvals')">ดูทั้งหมด →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ผู้จอง</th>
+                <th>ห้องประชุม</th>
+                <th>วัน-เวลา</th>
+                <th>หัวข้อ</th>
+                <th>สถานะ</th>
+                <th style="text-align:center">การกระทำ</th>
+              </tr>
+            </thead>
+            <tbody id="activityTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /sec-dashboard -->
+
+    <!-- ════ SECTION: APPROVALS ═════════════════ -->
+    <div class="admin-section" id="sec-approvals">
+      <div class="section-head">
+        <div>
+          <h1 class="section-title">อนุมัติการจอง</h1>
+          <p class="section-sub">จัดการคำขอจองห้องประชุมที่รอการพิจารณา</p>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div class="inner-tabs" id="approvalTabs"></div>
+        </div>
+        <div class="approval-list" id="approvalList"></div>
+      </div>
+    </div><!-- /sec-approvals -->
+
+    <!-- ════ SECTION: ROOMS ══════════════════════ -->
+    <div class="admin-section" id="sec-rooms">
+      <div class="section-head">
+        <div>
+          <h1 class="section-title">จัดการห้องประชุม</h1>
+          <p class="section-sub">เพิ่ม แก้ไข และจัดการห้องประชุมทั้งหมด</p>
+        </div>
+        <button class="btn btn-primary" onclick="openRoomModal(null)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          เพิ่มห้องใหม่
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" id="roomCount"></div>
+          <div class="search-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="roomSearch" placeholder="ค้นหาห้อง..." autocomplete="off" />
+          </div>
+        </div>
+        <div class="room-grid" id="roomGrid"></div>
+      </div>
+    </div><!-- /sec-rooms -->
+
+    <!-- ════ SECTION: USERS ══════════════════════ -->
+    <div class="admin-section" id="sec-users">
+      <div class="section-head">
+        <div>
+          <h1 class="section-title">จัดการผู้ใช้</h1>
+          <p class="section-sub">อนุมัติ แก้ไข และจัดการบัญชีผู้ใช้ระบบ</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddUserModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          เพิ่มผู้ใช้
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="inner-tabs" id="userTabs"></div>
+          <div class="search-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="userSearch" placeholder="ค้นหาผู้ใช้..." autocomplete="off" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ชื่อ-นามสกุล</th>
+                <th>แผนก</th>
+                <th>บทบาท</th>
+                <th>สถานะ</th>
+                <th>วันที่สมัคร</th>
+                <th style="text-align:center">การกระทำ</th>
+              </tr>
+            </thead>
+            <tbody id="userTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /sec-users -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══ MODAL: REJECT REASON ════════════════════════════════════ -->
+<div class="modal-backdrop" id="rejectModal">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h2 class="modal-title">ระบุเหตุผลการปฏิเสธ</h2>
+      <button class="modal-close" onclick="closeModal('rejectModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>กรุณาระบุเหตุผลที่ปฏิเสธคำขอจอง เพื่อแจ้งให้ผู้จองทราบ</p>
+      <div class="info-box" id="rejectBookingInfo"></div>
+      <div class="form-group" style="margin-top:4px;">
+        <label class="form-label" for="rejectReasonInput">เหตุผล <span style="color:#EF4444">*</span></label>
+        <textarea class="form-textarea" id="rejectReasonInput"
+                  placeholder="เช่น ห้องประชุมอยู่ระหว่างการปรับปรุง, ขอให้ใช้ห้อง B201 แทน..."
+                  rows="3"></textarea>
+        <div id="rejectReasonError" style="font-size:12px;color:#EF4444;margin-top:4px;display:none;">
+          กรุณาระบุเหตุผล
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('rejectModal')">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="confirmReject()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        ยืนยันการปฏิเสธ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: APPROVE CONFIRM ══════════════════════════════════ -->
+<div class="modal-backdrop" id="approveModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title">ยืนยันการอนุมัติ</h2>
+      <button class="modal-close" onclick="closeModal('approveModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>คุณต้องการอนุมัติคำขอจองนี้หรือไม่?</p>
+      <div class="info-box" id="approveBookingInfo"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('approveModal')">ยกเลิก</button>
+      <button class="btn btn-success" onclick="confirmApprove()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        ยืนยันการอนุมัติ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ROOM ADD/EDIT ══════════════════════════════════════ -->
+<div class="modal-backdrop" id="roomModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 class="modal-title" id="roomModalTitle">เพิ่มห้องประชุม</h2>
+      <button class="modal-close" onclick="closeModal('roomModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">รหัสห้อง <span style="color:#EF4444">*</span></label>
+          <input class="form-input" id="roomFormId" placeholder="เช่น A101, B201" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">ชื่อห้อง <span style="color:#EF4444">*</span></label>
+          <input class="form-input" id="roomFormName" placeholder="เช่น ห้องประชุม A101" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">ความจุ (คน) <span style="color:#EF4444">*</span></label>
+          <input class="form-input" id="roomFormCap" type="number" min="1" max="500" placeholder="เช่น 20" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">ชั้น / อาคาร</label>
+          <input class="form-input" id="roomFormLocation" placeholder="เช่น ชั้น 3 อาคาร A" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">คำอธิบาย</label>
+        <textarea class="form-textarea" id="roomFormDesc" rows="2" placeholder="คำอธิบายห้องประชุม"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">สิ่งอำนวยความสะดวก</label>
+        <div class="services-grid" id="servicesGrid"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">สถานะห้อง</label>
+        <select class="form-select" id="roomFormStatus">
+          <option value="active">เปิดใช้งาน</option>
+          <option value="inactive">ปิดปรับปรุง</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('roomModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveRoom()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        บันทึก
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DELETE CONFIRM ════════════════════════════════════ -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title" id="deleteModalTitle">ยืนยันการลบ</h2>
+      <button class="modal-close" onclick="closeModal('deleteModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteModalMsg">คุณต้องการลบรายการนี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">ยกเลิก</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4h6v2"/>
+        </svg>
+        ลบ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: USER APPROVE ══════════════════════════════════════ -->
+<div class="modal-backdrop" id="userApproveModal">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h2 class="modal-title">อนุมัติผู้ใช้</h2>
+      <button class="modal-close" onclick="closeModal('userApproveModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" id="userApproveInfo"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">แผนก / กอง</label>
+          <input class="form-input" id="uaDept" placeholder="เช่น กองวิจัย" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">บทบาท</label>
+          <select class="form-select" id="uaRole">
+            <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
+            <option value="หัวหน้างาน">หัวหน้างาน</option>
+            <option value="ผู้บริหาร">ผู้บริหาร</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('userApproveModal')">ยกเลิก</button>
+      <button class="btn btn-success" onclick="confirmUserApprove()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        อนุมัติ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ════════════════════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══ SCRIPT ═══════════════════════════════════════════════════ -->
+<script src="api.js"></script>
+<script>
+(function () {
+  'use strict';
+  checkAuth(true);    // true = ต้องการสิทธิ์ admin เท่านั้น
+  populateUserUI();
+
+  /* ── DATA — โหลดจาก API ──────────────────────── */
+  var BOOKINGS = [];
+  var ROOMS    = [];
+  var USERS    = [];
+
+  var MONTHS_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                  'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function fmtD(str) {
+    if (!str) return '';
+    var p = str.split('-');
+    return p[2] + ' ' + MONTHS_S[parseInt(p[1],10)-1] + ' ' + (parseInt(p[0],10)+543-2500);
+  }
+
+  /* normalize booking จาก server → format ที่ render ใช้ */
+  function normB(b) {
+    var u = b.user || {};
+    return {
+      id:              b._id,
+      requester:       (u.firstName||'') + ' ' + (u.lastName||''),
+      roomName:        b.room ? b.room.name : '—',
+      date:            b.date,
+      dateDisplay:     fmtD(b.date),
+      time:            b.startTime + ' – ' + b.endTime,
+      title:           b.title,
+      attendees:       b.attendees,
+      status:          b.status,
+      rejectionReason: b.rejectionReason || ''
+    };
+  }
+
+  /* normalize room */
+  function normR(r) {
+    return {
+      id:       r._id,
+      name:     r.name,
+      capacity: r.capacity,
+      location: r.location,
+      desc:     r.description || '',
+      services: r.services || [],
+      status:   r.status
+    };
+  }
+
+  /* normalize user */
+  function normU(u) {
+    var ms = MONTHS_S; var d = (u.createdAt||'').slice(0,10);
+    var dp = d ? d.split('-') : null;
+    return {
+      id:        u._id,
+      name:      (u.firstName||'') + ' ' + (u.lastName||''),
+      email:     u.email,
+      dept:      u.department || '',
+      role:      u.role === 'admin' ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่',
+      status:    u.status,
+      createdAt: dp ? (dp[2] + ' ' + ms[parseInt(dp[1],10)-1] + ' ' + (parseInt(dp[0],10)+543-2500)) : ''
+    };
+  }
+
+  /* โหลดข้อมูลทั้งหมดพร้อมกัน */
+  async function loadAdminData() {
+    try {
+      var results = await Promise.all([
+        apiGet('/admin/bookings?limit=100'),
+        apiGet('/rooms'),
+        apiGet('/admin/users?limit=100')
+      ]);
+      BOOKINGS = (results[0].bookings || []).map(normB);
+      ROOMS    = (results[1] || []).map(normR);
+      USERS    = (results[2].users || []).map(normU);
+      updateNavBadges();
+      renderDashboard();
+    } catch (err) {
+      showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+    }
+  }
+
+  var ALL_SERVICES = ['โปรเจ็กเตอร์','ไมโครโฟน','ไวท์บอร์ด','TV','เวที','คอมพิวเตอร์','ระบบเสียง','วิดีโอคอนเฟอเรนซ์'];
+
+  /* ── STATE ────────────────────────────────────── */
+  var state = {
+    activeSection: 'dashboard',
+    approvalTab:   'pending',
+    userTab:       'all',
+    userSearch:    '',
+    roomSearch:    '',
+    pendingActionId: null,    // booking id for approve/reject
+    pendingRoomId:   null,    // room id for delete
+    pendingUserId:   null,    // user id for approve/disable/delete
+    editingRoomId:   null,    // room id being edited (null = add new)
+    deleteCallback:  null,
+  };
+
+  /* ── HELPERS ──────────────────────────────────── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function $$(id) { return document.getElementById(id); }
+  function countBy(arr, field, val) { return arr.filter(function(x){ return x[field]===val; }).length; }
+
+  /* ── TOAST ────────────────────────────────────── */
+  function showToast(msg, type) {
+    type = type || 'info';
+    var icons = {
+      success: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      error:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+      info:    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = icons[type] + '<span>' + esc(msg) + '</span>';
+    $$('toastContainer').appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3500);
+  }
+
+  /* ── MODAL ────────────────────────────────────── */
+  function openModal(id) { $$(id).classList.add('open'); }
+  function closeModal(id) { $$(id).classList.remove('open'); }
+  window.closeModal = closeModal;
+
+  /* ── SECTION NAV ──────────────────────────────── */
+  var SECTION_LABELS = {
+    dashboard: 'Dashboard', approvals: 'อนุมัติการจอง',
+    rooms: 'จัดการห้อง', users: 'จัดการผู้ใช้'
+  };
+
+  function showSection(name) {
+    state.activeSection = name;
+    document.querySelectorAll('.admin-section').forEach(function(el){
+      el.classList.remove('active');
+    });
+    var sec = $$('sec-' + name);
+    if (sec) sec.classList.add('active');
+
+    document.querySelectorAll('.nav-item[data-nav]').forEach(function(el){
+      el.classList.toggle('active', el.dataset.nav === name);
+    });
+
+    $$('breadcrumbCurrent').textContent = SECTION_LABELS[name] || name;
+
+    // Lazy render each section on first visit
+    if (name === 'dashboard')  renderDashboard();
+    if (name === 'approvals')  renderApprovals();
+    if (name === 'rooms')      renderRooms();
+    if (name === 'users')      renderUsers();
+  }
+  window.showSection = showSection;
+
+  /* ── DASHBOARD ────────────────────────────────── */
+  function renderDashboard() {
+    var pendingCount   = countBy(BOOKINGS, 'status', 'pending');
+    var approvedCount  = countBy(BOOKINGS, 'status', 'approved');
+    var rejectedCount  = countBy(BOOKINGS, 'status', 'rejected');
+    var pendingUsers   = countBy(USERS, 'status', 'pending');
+    var activeRooms    = countBy(ROOMS, 'status', 'active');
+
+    var stats = [
+      { label:'รอดำเนินการ',  value: pendingCount,   unit:'คำขอ',       color:'#D68910', border:'#F59E0B' },
+      { label:'อนุมัติแล้ว',  value: approvedCount,  unit:'รายการ',     color:'#17A589', border:'#10B981' },
+      { label:'ปฏิเสธ',       value: rejectedCount,  unit:'รายการ',     color:'#E74C3C', border:'#EF4444' },
+      { label:'ห้องเปิดใช้',  value: activeRooms,    unit:'ห้องประชุม', color:'#1A2332', border:'#1B4F72' },
+      { label:'ผู้ใช้ทั้งหมด', value: USERS.length,   unit:'บัญชี',      color:'#2E86AB', border:'#2E86AB' },
+      { label:'รอ Approve',   value: pendingUsers,   unit:'ผู้ใช้',      color:'#D68910', border:'#F59E0B' },
+    ];
+
+    $$('statGrid').innerHTML = stats.map(function(s){
+      return '<div class="stat-card" style="border-left-color:' + s.border + '">' +
+             '<div class="stat-label">' + esc(s.label) + '</div>' +
+             '<div class="stat-value" style="color:' + s.color + '">' + s.value + '</div>' +
+             '<div class="stat-unit">' + esc(s.unit) + '</div>' +
+             '</div>';
+    }).join('');
+
+    // Activity table — last 6 bookings
+    var recent = BOOKINGS.slice().reverse().slice(0, 6);
+    $$('activityTbody').innerHTML = recent.map(function(b){
+      var bc = b.status === 'pending' ? 'badge-pending' : b.status === 'approved' ? 'badge-approved' : 'badge-rejected';
+      var bl = b.status === 'pending' ? 'รอดำเนินการ' : b.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ';
+      var action = b.status === 'pending'
+        ? '<button class="btn btn-success btn-xs" onclick="openApproveModal(\'' + b.id + '\')">อนุมัติ</button>' +
+          '&nbsp;<button class="btn btn-danger btn-xs" onclick="openRejectModal(\'' + b.id + '\')">ปฏิเสธ</button>'
+        : '<a href="#" style="font-size:12px;color:var(--secondary);font-weight:500;" onclick="showSection(\'approvals\');return false;">ดู →</a>';
+      return '<tr>' +
+             '<td style="font-weight:500">' + esc(b.requester) + '</td>' +
+             '<td>' + esc(b.roomName) + '</td>' +
+             '<td style="color:var(--text-mid)">' + esc(b.dateDisplay) + ' ' + esc(b.time) + '</td>' +
+             '<td>' + esc(b.title) + '</td>' +
+             '<td><span class="badge ' + bc + '"><span class="badge-dot-sm"></span>' + bl + '</span></td>' +
+             '<td style="text-align:center">' + action + '</td>' +
+             '</tr>';
+    }).join('');
+  }
+
+  /* ── APPROVALS ────────────────────────────────── */
+  var APPROVAL_TABS = [
+    { key:'pending',  label:'รอดำเนินการ' },
+    { key:'approved', label:'อนุมัติ' },
+    { key:'rejected', label:'ปฏิเสธ' },
+    { key:'all',      label:'ทั้งหมด' },
+  ];
+
+  function renderApprovals() {
+    // Tabs
+    $$('approvalTabs').innerHTML = APPROVAL_TABS.map(function(t){
+      var cnt = t.key === 'all' ? BOOKINGS.length : countBy(BOOKINGS,'status',t.key);
+      return '<button class="inner-tab' + (state.approvalTab===t.key?' active':'') + '" data-atab="' + t.key + '">' +
+             esc(t.label) + '<span class="tab-cnt">' + cnt + '</span></button>';
+    }).join('');
+    $$('approvalTabs').querySelectorAll('.inner-tab').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        state.approvalTab = this.dataset.atab;
+        renderApprovals();
+      });
+    });
+
+    var list = BOOKINGS.filter(function(b){
+      return state.approvalTab === 'all' || b.status === state.approvalTab;
+    });
+
+    if (list.length === 0) {
+      $$('approvalList').innerHTML = '<div class="empty-cards">ไม่มีคำขอในหมวดนี้</div>';
+      return;
+    }
+
+    $$('approvalList').innerHTML = list.map(function(b){
+      var sc = b.status==='pending' ? 'badge-pending' : b.status==='approved' ? 'badge-approved' : 'badge-rejected';
+      var sl = b.status==='pending' ? 'รอดำเนินการ' : b.status==='approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ';
+
+      var actions = '';
+      if (b.status === 'pending') {
+        actions = '<button class="btn btn-success btn-sm" onclick="openApproveModal(\'' + b.id + '\')">' +
+                  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> อนุมัติ</button>' +
+                  '<button class="btn btn-danger btn-sm" onclick="openRejectModal(\'' + b.id + '\')">' +
+                  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ปฏิเสธ</button>';
+      }
+
+      var rejBox = (b.status==='rejected' && b.rejectionReason)
+        ? '<div class="reject-reason-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+          '<div><div style="font-size:11px;font-weight:600;color:#C53030;margin-bottom:2px">เหตุผล</div>' +
+          '<div style="font-size:12px;color:#742A2A">' + esc(b.rejectionReason) + '</div></div></div>'
+        : '';
+
+      return '<div class="approval-card">' +
+             '<div class="ac-left">' +
+             '<div class="ac-row1">' +
+             '<span class="ac-requester">' + esc(b.requester) + '</span>' +
+             '<span class="badge ' + sc + '"><span class="badge-dot-sm"></span>' + sl + '</span>' +
+             '</div>' +
+             '<div class="ac-info">' +
+             '<span class="ac-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + esc(b.roomName) + '</span>' +
+             '<span class="ac-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + esc(b.dateDisplay) + '</span>' +
+             '<span class="ac-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + esc(b.time) + '</span>' +
+             '<span class="ac-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>' + b.attendees + ' คน</span>' +
+             '</div>' +
+             '<div class="ac-title">' + esc(b.title) + '</div>' +
+             rejBox +
+             '</div>' +
+             '<div class="ac-right" style="gap:6px">' + actions + '</div>' +
+             '</div>';
+    }).join('');
+  }
+
+  /* ── APPROVE / REJECT ─────────────────────────── */
+  function openApproveModal(id) {
+    state.pendingActionId = id;
+    var b = BOOKINGS.find(function(x){ return x.id===id; });
+    if (!b) return;
+    $$('approveBookingInfo').innerHTML = bookingInfoHTML(b);
+    openModal('approveModal');
+  }
+  window.openApproveModal = openApproveModal;
+
+  function confirmApprove() {
+    var id = state.pendingActionId;
+    var b  = BOOKINGS.find(function(x){ return x.id===id; });
+    (async function(){
+      try {
+        await apiPut('/admin/bookings/' + id + '/approve');
+        if (b) b.status = 'approved';
+        closeModal('approveModal');
+        updateNavBadges(); renderDashboard(); renderApprovals();
+        showToast('อนุมัติการจอง "' + (b?b.title:'') + '" เรียบร้อยแล้ว', 'success');
+      } catch(err) { closeModal('approveModal'); showToast(err.message, 'error'); }
+    }());
+  }
+  window.confirmApprove = confirmApprove;
+
+  function openRejectModal(id) {
+    state.pendingActionId = id;
+    var b = BOOKINGS.find(function(x){ return x.id===id; });
+    if (!b) return;
+    $$('rejectBookingInfo').innerHTML = bookingInfoHTML(b);
+    $$('rejectReasonInput').value = '';
+    $$('rejectReasonError').style.display = 'none';
+    openModal('rejectModal');
+  }
+  window.openRejectModal = openRejectModal;
+
+  function confirmReject() {
+    var reason = $$('rejectReasonInput').value.trim();
+    if (!reason) { $$('rejectReasonError').style.display = 'block'; return; }
+    var id = state.pendingActionId;
+    var b  = BOOKINGS.find(function(x){ return x.id===id; });
+    (async function(){
+      try {
+        await apiPut('/admin/bookings/' + id + '/reject', { reason: reason });
+        if (b) { b.status='rejected'; b.rejectionReason=reason; }
+        closeModal('rejectModal');
+        updateNavBadges(); renderDashboard(); renderApprovals();
+        showToast('ปฏิเสธการจอง "' + (b?b.title:'') + '" แล้ว', 'info');
+      } catch(err) { closeModal('rejectModal'); showToast(err.message, 'error'); }
+    }());
+  }
+  window.confirmReject = confirmReject;
+
+  function bookingInfoHTML(b) {
+    return '<div class="info-row"><span class="info-lbl">ผู้จอง</span><span class="info-val">' + esc(b.requester) + '</span></div>' +
+           '<div class="info-row"><span class="info-lbl">ห้อง</span><span class="info-val">' + esc(b.roomName) + '</span></div>' +
+           '<div class="info-row"><span class="info-lbl">วันที่</span><span class="info-val">' + esc(b.dateDisplay) + ' ' + esc(b.time) + '</span></div>' +
+           '<div class="info-row"><span class="info-lbl">หัวข้อ</span><span class="info-val">' + esc(b.title) + '</span></div>';
+  }
+
+  /* ── ROOMS ────────────────────────────────────── */
+  function renderRooms() {
+    var q = ($$('roomSearch').value||'').toLowerCase();
+    var list = ROOMS.filter(function(r){
+      return r.name.toLowerCase().indexOf(q) !== -1 || r.id.toLowerCase().indexOf(q) !== -1;
+    });
+
+    $$('roomCount').textContent = 'ห้องประชุมทั้งหมด ' + ROOMS.length + ' ห้อง';
+
+    if (list.length === 0) {
+      $$('roomGrid').innerHTML = '<div class="empty-cards" style="grid-column:1/-1">ไม่พบห้องประชุม</div>';
+      return;
+    }
+
+    $$('roomGrid').innerHTML = list.map(function(r){
+      var statusBadge = r.status==='active'
+        ? '<span class="badge badge-active room-status-pill">เปิดใช้งาน</span>'
+        : '<span class="badge badge-inactive room-status-pill">ปิดปรับปรุง</span>';
+      var tags = r.services.map(function(s){ return '<span class="room-tag">' + esc(s) + '</span>'; }).join('');
+      return '<div class="room-card">' +
+             '<div class="room-img">' +
+             '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 21V9"/></svg>' +
+             statusBadge +
+             '</div>' +
+             '<div class="room-info">' +
+             '<div class="room-name">' + esc(r.id) + ' · ' + esc(r.name) + '</div>' +
+             '<div class="room-cap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>ความจุ ' + r.capacity + ' คน · ' + esc(r.location) + '</div>' +
+             '<div class="room-tags">' + tags + '</div>' +
+             '<div class="room-actions">' +
+             '<button class="btn btn-outline btn-sm" onclick="openRoomModal(\'' + r.id + '\')">' +
+             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>แก้ไข</button>' +
+             '<button class="btn-icon danger" onclick="openDeleteRoom(\'' + r.id + '\')" title="ลบห้อง">' +
+             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>' +
+             '</button>' +
+             '</div>' +
+             '</div></div>';
+    }).join('');
+  }
+
+  function openRoomModal(roomId) {
+    state.editingRoomId = roomId;
+    var r = roomId ? ROOMS.find(function(x){ return x.id===roomId; }) : null;
+
+    $$('roomModalTitle').textContent = r ? 'แก้ไขห้องประชุม' : 'เพิ่มห้องประชุม';
+    $$('roomFormId').value       = r ? r.id       : '';
+    $$('roomFormId').disabled    = !!r;
+    $$('roomFormName').value     = r ? r.name     : '';
+    $$('roomFormCap').value      = r ? r.capacity : '';
+    $$('roomFormLocation').value = r ? r.location : '';
+    $$('roomFormDesc').value     = r ? r.desc     : '';
+    $$('roomFormStatus').value   = r ? r.status   : 'active';
+
+    var svcs = r ? r.services : [];
+    $$('servicesGrid').innerHTML = ALL_SERVICES.map(function(s){
+      var checked = svcs.indexOf(s) !== -1 ? ' checked' : '';
+      return '<div class="form-check">' +
+             '<input type="checkbox" id="svc_' + s + '" value="' + esc(s) + '"' + checked + '>' +
+             '<label for="svc_' + s + '">' + esc(s) + '</label></div>';
+    }).join('');
+
+    openModal('roomModal');
+  }
+  window.openRoomModal = openRoomModal;
+
+  function saveRoom() {
+    var name = $$('roomFormName').value.trim();
+    var cap  = parseInt($$('roomFormCap').value, 10);
+    if (!name || !cap) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+
+    var svcs = [];
+    document.querySelectorAll('#servicesGrid input[type=checkbox]:checked').forEach(function(cb){
+      svcs.push(cb.value);
+    });
+    var body = {
+      name:        name,
+      capacity:    cap,
+      location:    $$('roomFormLocation').value.trim(),
+      description: $$('roomFormDesc').value.trim(),
+      services:    svcs,
+      status:      $$('roomFormStatus').value
+    };
+
+    var editId = state.editingRoomId;
+    (async function(){
+      try {
+        var result;
+        if (editId) {
+          result = await apiPut('/rooms/' + editId, body);
+          var idx = ROOMS.findIndex(function(x){ return x.id===editId; });
+          if (idx !== -1) ROOMS[idx] = normR(result);
+          showToast('อัปเดตห้อง ' + name + ' เรียบร้อยแล้ว', 'success');
+        } else {
+          result = await apiPost('/rooms', body);
+          ROOMS.push(normR(result));
+          showToast('เพิ่มห้อง ' + name + ' เรียบร้อยแล้ว', 'success');
+        }
+        closeModal('roomModal');
+        renderRooms(); renderDashboard();
+      } catch(err) { showToast(err.message, 'error'); }
+    }());
+  }
+  window.saveRoom = saveRoom;
+
+  function openDeleteRoom(roomId) {
+    var r = ROOMS.find(function(x){ return x.id===roomId; });
+    $$('deleteModalTitle').textContent = 'ลบห้องประชุม';
+    $$('deleteModalMsg').textContent = 'คุณต้องการลบ "' + (r?r.name:roomId) + '" หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้';
+    state.deleteCallback = function(){
+      (async function(){
+        try {
+          await apiDelete('/rooms/' + roomId);
+          var idx = ROOMS.findIndex(function(x){ return x.id===roomId; });
+          if (idx !== -1) ROOMS.splice(idx, 1);
+          closeModal('deleteModal');
+          renderRooms(); renderDashboard();
+          showToast('ลบห้อง ' + (r?r.name:roomId) + ' เรียบร้อยแล้ว', 'info');
+        } catch(err) { closeModal('deleteModal'); showToast(err.message, 'error'); }
+      }());
+    };
+    openModal('deleteModal');
+  }
+  window.openDeleteRoom = openDeleteRoom;
+
+  /* ── USERS ────────────────────────────────────── */
+  var USER_TABS = [
+    { key:'all',      label:'ทั้งหมด' },
+    { key:'pending',  label:'รอ Approve' },
+    { key:'active',   label:'Active' },
+    { key:'inactive', label:'Inactive' },
+  ];
+
+  function renderUsers() {
+    // Tabs
+    $$('userTabs').innerHTML = USER_TABS.map(function(t){
+      var cnt = t.key==='all' ? USERS.length : countBy(USERS,'status',t.key);
+      return '<button class="inner-tab' + (state.userTab===t.key?' active':'') + '" data-utab="' + t.key + '">' +
+             esc(t.label) + '<span class="tab-cnt">' + cnt + '</span></button>';
+    }).join('');
+    $$('userTabs').querySelectorAll('.inner-tab').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        state.userTab = this.dataset.utab;
+        renderUsers();
+      });
+    });
+
+    var q = ($$('userSearch').value||'').toLowerCase();
+    var list = USERS.filter(function(u){
+      var matchTab = state.userTab==='all' || u.status===state.userTab;
+      var matchQ   = !q || u.name.toLowerCase().indexOf(q)!==-1 || u.email.toLowerCase().indexOf(q)!==-1;
+      return matchTab && matchQ;
+    });
+
+    if (list.length === 0) {
+      $$('userTbody').innerHTML = '<tr class="empty-row"><td colspan="6">ไม่พบผู้ใช้</td></tr>';
+      return;
+    }
+
+    $$('userTbody').innerHTML = list.map(function(u){
+      var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2);
+      var statusBadge = u.status==='active'   ? '<span class="badge badge-active">Active</span>'
+                      : u.status==='inactive' ? '<span class="badge badge-inactive">Inactive</span>'
+                      : '<span class="badge badge-user-pending">รอ Approve</span>';
+
+      var actions = '';
+      if (u.status === 'pending') {
+        actions = '<button class="btn btn-success btn-xs" onclick="openUserApproveModal(\'' + u.id + '\')">อนุมัติ</button> ';
+        actions += '<button class="btn btn-danger btn-xs" onclick="openDeleteUser(\'' + u.id + '\')">ปฏิเสธ</button>';
+      } else {
+        actions += u.status==='active'
+          ? '<button class="btn btn-outline btn-xs" onclick="toggleUserStatus(\'' + u.id + '\')">ระงับ</button>'
+          : '<button class="btn btn-success btn-xs" onclick="toggleUserStatus(\'' + u.id + '\')">เปิดใช้งาน</button>';
+        actions += ' <button class="btn-icon danger" onclick="openDeleteUser(\'' + u.id + '\')" title="ลบผู้ใช้">' +
+                   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>' +
+                   '</button>';
+      }
+
+      return '<tr>' +
+             '<td><div class="user-name-cell">' +
+             '<div class="user-avatar-tbl">' + esc(initials) + '</div>' +
+             '<div><div class="user-tbl-name">' + esc(u.name) + '</div>' +
+             '<div class="user-tbl-email">' + esc(u.email) + '</div></div>' +
+             '</div></td>' +
+             '<td>' + esc(u.dept||'—') + '</td>' +
+             '<td>' + esc(u.role||'—') + '</td>' +
+             '<td>' + statusBadge + '</td>' +
+             '<td style="color:var(--text-muted);font-size:12px">' + esc(u.createdAt) + '</td>' +
+             '<td style="text-align:center">' + actions + '</td>' +
+             '</tr>';
+    }).join('');
+  }
+
+  function openUserApproveModal(userId) {
+    state.pendingUserId = userId;
+    var u = USERS.find(function(x){ return x.id===userId; });
+    if (!u) return;
+    $$('userApproveInfo').innerHTML =
+      '<div class="info-row"><span class="info-lbl">ชื่อ</span><span class="info-val">' + esc(u.name) + '</span></div>' +
+      '<div class="info-row"><span class="info-lbl">อีเมล</span><span class="info-val">' + esc(u.email) + '</span></div>';
+    $$('uaDept').value = '';
+    $$('uaRole').value = 'เจ้าหน้าที่';
+    openModal('userApproveModal');
+  }
+  window.openUserApproveModal = openUserApproveModal;
+
+  function confirmUserApprove() {
+    var id   = state.pendingUserId;
+    var u    = USERS.find(function(x){ return x.id===id; });
+    var dept = $$('uaDept').value.trim() || 'ทั่วไป';
+    var role = $$('uaRole').value === 'ผู้ดูแลระบบ' ? 'admin' : 'user';
+    (async function(){
+      try {
+        await apiPut('/admin/users/' + id + '/approve', { department: dept, role: role });
+        if (u) { u.status='active'; u.dept=dept; u.role= role==='admin'?'ผู้ดูแลระบบ':'เจ้าหน้าที่'; }
+        closeModal('userApproveModal');
+        updateNavBadges(); renderUsers(); renderDashboard();
+        showToast('อนุมัติผู้ใช้ ' + (u?u.name:'') + ' เรียบร้อยแล้ว', 'success');
+      } catch(err) { closeModal('userApproveModal'); showToast(err.message, 'error'); }
+    }());
+  }
+  window.confirmUserApprove = confirmUserApprove;
+
+  function toggleUserStatus(userId) {
+    var u = USERS.find(function(x){ return x.id===userId; });
+    if (!u) return;
+    var newStatus = u.status==='active' ? 'inactive' : 'active';
+    (async function(){
+      try {
+        await apiPut('/admin/users/' + userId + '/status', { status: newStatus });
+        u.status = newStatus;
+        renderUsers(); renderDashboard();
+        showToast((newStatus==='active'?'เปิดใช้งาน':'ระงับ') + ' บัญชี ' + u.name + ' แล้ว', 'info');
+      } catch(err) { showToast(err.message, 'error'); }
+    }());
+  }
+  window.toggleUserStatus = toggleUserStatus;
+
+  function openDeleteUser(userId) {
+    var u = USERS.find(function(x){ return x.id===userId; });
+    $$('deleteModalTitle').textContent = 'ลบผู้ใช้';
+    $$('deleteModalMsg').textContent = 'คุณต้องการลบบัญชี "' + (u?u.name:userId) + '" หรือไม่?';
+    state.deleteCallback = function(){
+      (async function(){
+        try {
+          await apiDelete('/admin/users/' + userId);
+          var idx = USERS.findIndex(function(x){ return x.id===userId; });
+          if (idx !== -1) USERS.splice(idx, 1);
+          closeModal('deleteModal');
+          updateNavBadges(); renderUsers(); renderDashboard();
+          showToast('ลบบัญชี ' + (u?u.name:userId) + ' เรียบร้อยแล้ว', 'info');
+        } catch(err) { closeModal('deleteModal'); showToast(err.message, 'error'); }
+      }());
+    };
+    openModal('deleteModal');
+  }
+  window.openDeleteUser = openDeleteUser;
+
+  function openAddUserModal() {
+    showToast('ฟีเจอร์นี้จะพัฒนาในเวอร์ชันถัดไป', 'info');
+  }
+  window.openAddUserModal = openAddUserModal;
+
+  /* ── NAV BADGES ───────────────────────────────── */
+  function updateNavBadges() {
+    var pendingBookings = countBy(BOOKINGS,'status','pending');
+    var pendingUsers    = countBy(USERS,'status','pending');
+
+    var ab = $$('navApprovalsBadge');
+    var ub = $$('navUsersBadge');
+    if (ab) { ab.textContent = pendingBookings; ab.style.display = pendingBookings > 0 ? '' : 'none'; }
+    if (ub) { ub.textContent = pendingUsers;    ub.style.display = pendingUsers > 0    ? '' : 'none'; }
+
+    var notif = pendingBookings + pendingUsers;
+    var nc = document.querySelector('.notif-count');
+    if (nc) nc.textContent = notif;
+  }
+
+  /* ── SIDEBAR ──────────────────────────────────── */
+  function initSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    var hamburger = document.getElementById('hamburgerBtn');
+    var main = document.getElementById('main');
+
+    hamburger.addEventListener('click', function(){
+      if (window.innerWidth >= 1024) {
+        sidebar.classList.toggle('collapsed');
+        main.classList.toggle('expanded');
+      } else {
+        var open = sidebar.classList.toggle('open');
+        overlay.classList.toggle('visible', open);
+      }
+    });
+    overlay.addEventListener('click', function(){
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+    });
+    window.addEventListener('resize', function(){
+      if (window.innerWidth >= 1024) {
+        overlay.classList.remove('visible');
+        sidebar.classList.remove('open');
+      }
+    });
+  }
+
+  /* ── DELETE MODAL CONFIRM ─────────────────────── */
+  function initDeleteModal() {
+    $$('deleteConfirmBtn').addEventListener('click', function(){
+      if (state.deleteCallback) state.deleteCallback();
+    });
+    $$('deleteModal').addEventListener('click', function(e){
+      if (e.target === this) closeModal('deleteModal');
+    });
+  }
+
+  /* ── INIT ─────────────────────────────────────── */
+  function init() {
+    initSidebar();
+    initDeleteModal();
+
+    // Modal backdrop close
+    ['rejectModal','approveModal','roomModal','userApproveModal'].forEach(function(id){
+      var el = $$(id);
+      if (el) el.addEventListener('click', function(e){ if(e.target===this) closeModal(id); });
+    });
+
+    // ESC close
+    document.addEventListener('keydown', function(e){
+      if (e.key==='Escape') {
+        ['rejectModal','approveModal','roomModal','deleteModal','userApproveModal'].forEach(closeModal);
+      }
+    });
+
+    // Nav button click
+    document.querySelectorAll('.nav-item[data-nav]').forEach(function(btn){
+      btn.addEventListener('click', function(){ showSection(this.dataset.nav); });
+    });
+
+    // Room search
+    var roomSearchTimer;
+    $$('roomSearch').addEventListener('input', function(){
+      clearTimeout(roomSearchTimer);
+      var self = this;
+      roomSearchTimer = setTimeout(function(){ renderRooms(); }, 200);
+    });
+
+    // User search
+    var userSearchTimer;
+    $$('userSearch').addEventListener('input', function(){
+      clearTimeout(userSearchTimer);
+      userSearchTimer = setTimeout(function(){ renderUsers(); }, 200);
+    });
+
+    /* โหลดข้อมูลจริงจาก API */
+    loadAdminData();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+}());
+</script>
+</body>
+</html>

@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ภาพรวม — ระบบจองห้องประชุม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       DESIGN SYSTEM
+    ========================================== */
+    :root {
+      --primary:      #1B4F72;
+      --primary-dark: #163d58;
+      --secondary:    #2E86AB;
+      --accent:       #17A589;
+      --bg:           #F0F4F8;
+      --surface:      #FFFFFF;
+      --surface-2:    #F8FAFC;
+      --text-dark:    #1A2332;
+      --text-mid:     #4A5568;
+      --text-light:   #718096;
+      --text-muted:   #A0AEC0;
+      --border:       #E2E8F0;
+      --border-light: #F7FAFC;
+      --danger:       #C0392B;
+      --warning:      #D68910;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+      --shadow-md:    0 4px 12px rgba(0,0,0,0.10), 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text-dark);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
+
+    /* ==========================================
+       APP SHELL
+    ========================================== */
+    #app { display: flex; min-height: 100vh; }
+
+    /* ==========================================
+       SIDEBAR
+    ========================================== */
+    #sidebar {
+      width: 240px;
+      background: var(--primary);
+      position: fixed;
+      left: 0; top: 0;
+      height: 100vh;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(0);
+      transition: transform 280ms ease;
+      overflow: hidden;
+    }
+
+    #sidebar.collapsed { transform: translateX(-240px); }
+
+    /* Sidebar Logo */
+    .sb-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sb-logo-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .sb-logo-text { min-width: 0; }
+    .sb-logo-text .t1 { font-size: 13px; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; }
+    .sb-logo-text .t2 { font-size: 10px; color: rgba(255,255,255,0.55); margin: 2px 0 0; line-height: 1.2; }
+
+    /* Sidebar Nav */
+    #sidebar-nav {
+      flex: 1;
+      padding: 10px 0;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      background: transparent;
+      border: none;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: background 150ms, border-color 150ms;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.08); }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.15);
+      border-left-color: rgba(255,255,255,0.88);
+    }
+
+    .nav-item svg { flex-shrink: 0; opacity: 0.65; }
+    .nav-item.active svg { opacity: 1; }
+
+    .nav-item span {
+      font-size: 13.5px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.68);
+    }
+
+    .nav-item.active span {
+      font-weight: 600;
+      color: rgba(255,255,255,0.96);
+    }
+
+    /* Sidebar User */
+    .sb-user {
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .sb-user-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .sb-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+
+    .sb-user-info { min-width: 0; }
+    .sb-user-name {
+      font-size: 13px; font-weight: 600; color: #fff;
+      margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sb-user-dept { font-size: 11px; color: rgba(255,255,255,0.55); margin: 2px 0 0; }
+
+    .btn-logout {
+      width: 100%;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.08);
+      border: none; border-radius: 7px;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.15); }
+    .btn-logout span { font-size: 13px; color: rgba(255,255,255,0.7); }
+
+    /* ==========================================
+       MOBILE OVERLAY
+    ========================================== */
+    #sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 49;
+      display: none;
+    }
+
+    #sidebar-overlay.show { display: block; }
+
+    /* ==========================================
+       MAIN AREA
+    ========================================== */
+    #main {
+      flex: 1;
+      margin-left: 240px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: margin-left 280ms ease;
+    }
+
+    /* ==========================================
+       NAVBAR
+    ========================================== */
+    #navbar {
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0; z-index: 40;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    #hamburger {
+      width: 38px; height: 38px;
+      border: none; background: none;
+      cursor: pointer;
+      display: none; /* hidden on desktop */
+      align-items: center; justify-content: center;
+      border-radius: 8px;
+      flex-shrink: 0;
+      transition: background 150ms;
+      color: var(--text-mid);
+    }
+    #hamburger:hover { background: var(--bg); }
+
+    .breadcrumb {
+      display: flex; align-items: center; gap: 7px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .breadcrumb .bc-root { font-size: 13px; color: var(--text-muted); }
+    .breadcrumb .bc-sep  { color: #D2D6DC; font-size: 14px; }
+    .breadcrumb .bc-page { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+
+    .search-wrap {
+      flex: 1;
+      max-width: 380px;
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-dark);
+      background: var(--surface-2);
+      outline: none;
+      transition: all 200ms;
+      font-family: inherit;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(27,79,114,0.10);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 11px; top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+
+    .spacer { flex: 1; }
+
+    /* Notif Bell */
+    .nb-wrap { position: relative; }
+
+    .nb-btn {
+      width: 38px; height: 38px;
+      border: none; background: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      color: var(--text-mid);
+      transition: background 150ms;
+    }
+    .nb-btn:hover { background: var(--bg); }
+
+    .nb-badge {
+      position: absolute;
+      top: 7px; right: 7px;
+      width: 15px; height: 15px;
+      background: var(--danger);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--surface);
+      font-size: 8px; font-weight: 700; color: #fff;
+    }
+
+    /* User Button */
+    .ub-wrap { position: relative; }
+
+    .ub-btn {
+      display: flex; align-items: center; gap: 9px;
+      padding: 5px 8px;
+      border: none; background: none;
+      cursor: pointer; border-radius: 8px;
+      transition: background 150ms;
+    }
+    .ub-btn:hover { background: var(--bg); }
+
+    .ub-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+
+    .ub-info .u-name { font-size: 13px; font-weight: 500; color: var(--text-dark); margin: 0; line-height: 1.3; white-space: nowrap; }
+    .ub-info .u-dept { font-size: 11px; color: var(--text-light); margin: 0; }
+
+    /* Dropdown shared */
+    .dropdown {
+      position: absolute;
+      top: calc(100% + 10px); right: 0;
+      background: var(--surface);
+      border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      border: 1px solid var(--border);
+      z-index: 200;
+      overflow: hidden;
+      display: none;
+    }
+    .dropdown.open { display: block; }
+
+    #notif-dd { width: 310px; }
+    #user-dd  { width: 200px; }
+
+    .dd-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .dd-header .dd-title { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+    .dd-header .dd-action { font-size: 12px; color: var(--secondary); cursor: pointer; font-weight: 500; }
+
+    .notif-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      gap: 10px;
+    }
+    .notif-item.unread { background: #F8FBFF; }
+
+    .notif-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 5px; flex-shrink: 0;
+    }
+
+    .notif-item p { margin: 0; }
+    .notif-text { font-size: 13px; color: var(--text-dark); line-height: 1.4; margin-bottom: 3px !important; }
+    .notif-time { font-size: 11px; color: var(--text-muted); }
+
+    .dd-user-info { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .dd-user-info .u2-name { font-size: 13px; font-weight: 600; color: var(--text-dark); margin: 0; }
+    .dd-user-info .u2-email { font-size: 11px; color: var(--text-light); margin: 3px 0 0; }
+
+    .dd-menu { padding: 6px; }
+
+    .dd-menu-item {
+      width: 100%;
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 12px;
+      border: none; background: none;
+      cursor: pointer; border-radius: 7px;
+      font-family: inherit; text-align: left;
+      transition: background 150ms;
+      font-size: 13px; color: var(--text-mid);
+    }
+    .dd-menu-item:hover { background: var(--bg); }
+
+    .dd-menu-item.danger { color: var(--danger); }
+    .dd-menu-item.danger:hover { background: #FEE2E2; }
+
+    .dd-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ==========================================
+       CONTENT AREA
+    ========================================== */
+    #content { flex: 1; padding: 28px; }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+
+    .page-header h1 {
+      font-size: 22px; font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 4px;
+      letter-spacing: -0.3px;
+    }
+
+    .page-header p { font-size: 13px; color: var(--text-light); margin: 0; }
+
+    .btn-book {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 18px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap; flex-shrink: 0;
+      transition: background 200ms;
+    }
+    .btn-book:hover { background: var(--primary-dark); }
+
+    /* ==========================================
+       STAT CARDS
+    ========================================== */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 20px 22px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .stat-card .s-label {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-light);
+      margin: 0 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .s-value {
+      font-size: 32px; font-weight: 700;
+      color: var(--text-dark);
+      margin: 0; line-height: 1;
+    }
+
+    .stat-card .s-sub {
+      font-size: 12px; color: var(--text-muted);
+      margin: 5px 0 0;
+    }
+
+    .stat-icon {
+      width: 50px; height: 50px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================
+       MID ROW: Calendar + Recent
+    ========================================== */
+    .mid-row {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 16px;
+      margin-bottom: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-size: 15px; font-weight: 600;
+      color: var(--text-dark); margin: 0;
+    }
+
+    /* Mini Calendar */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .cal-nav-btn {
+      width: 30px; height: 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: var(--surface);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-mid);
+      transition: all 150ms;
+    }
+    .cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .cal-month-label { font-size: 15px; font-weight: 600; color: var(--text-dark); margin: 0; }
+
+    .cal-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin-bottom: 4px;
+    }
+    .cal-dow span {
+      text-align: center;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      padding: 4px 0;
+    }
+
+    #cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .cal-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 150ms;
+      position: relative;
+    }
+
+    .cal-cell:hover:not(.empty):not(.selected) { background: var(--bg); }
+    .cal-cell.empty { cursor: default; pointer-events: none; }
+    .cal-cell.today { background: #EBF5FB; }
+    .cal-cell.selected { background: var(--primary); }
+
+    .cal-cell .cn {
+      font-size: 12.5px; font-weight: 400;
+      color: var(--text-mid); line-height: 1;
+    }
+    .cal-cell.today .cn    { font-weight: 600; color: var(--primary); }
+    .cal-cell.selected .cn { font-weight: 600; color: #fff; }
+
+    .cal-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 2px rgba(23, 165, 137, 0.25);
+      margin-top: 3px;
+    }
+
+    .cal-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-light);
+    }
+
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .legend-sq {
+      width: 8px; height: 8px;
+      border-radius: 2px;
+    }
+
+    /* Recent Bookings */
+    .card-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-link { font-size: 12px; color: var(--secondary); font-weight: 500; }
+    .card-link:hover { text-decoration: underline; }
+
+    .booking-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .booking-item:last-child { border-bottom: none; }
+
+    .booking-info { flex: 1; min-width: 0; }
+
+    .booking-room {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-dark);
+      margin: 0 0 3px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .booking-time {
+      font-size: 12px; color: var(--text-light);
+      margin: 0 0 4px;
+    }
+
+    .booking-detail-link {
+      font-size: 11px; color: var(--secondary);
+    }
+    .booking-detail-link:hover { text-decoration: underline; }
+
+    /* Status Badges */
+    .badge {
+      font-size: 11px; font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .badge-pending  { background: #FEF3C7; color: #92400E; border-color: #F59E0B; }
+    .badge-approved { background: #D1FAE5; color: #065F46; border-color: #10B981; }
+    .badge-rejected { background: #FEE2E2; color: #991B1B; border-color: #EF4444; }
+    .badge-cancelled{ background: #F3F4F6; color: #374151; border-color: #9CA3AF; }
+
+    /* ==========================================
+       ROOM CARDS
+    ========================================== */
+    .rooms-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .rooms-header h3 { font-size: 16px; font-weight: 600; color: var(--text-dark); margin: 0; }
+
+    .room-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .room-card {
+      background: var(--surface);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 200ms;
+    }
+    .room-card:hover { box-shadow: var(--shadow-md); }
+
+    .room-img {
+      height: 136px;
+      background: repeating-linear-gradient(45deg, #E2E8F0, #E2E8F0 2px, #F0F4F8 2px, #F0F4F8 16px);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+
+    .room-img-label {
+      font-size: 11px; color: var(--text-light);
+      background: rgba(255,255,255,0.88);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .room-img .badge {
+      position: absolute;
+      top: 10px; right: 10px;
+    }
+
+    .room-body { padding: 16px; }
+
+    .room-name {
+      font-size: 14px; font-weight: 600;
+      color: var(--text-dark); margin: 0 0 10px;
+      line-height: 1.3;
+    }
+
+    .room-meta {
+      display: flex; align-items: center;
+      gap: 5px; margin-bottom: 6px;
+      font-size: 12px; color: var(--text-light);
+    }
+
+    .room-tags {
+      display: flex; flex-wrap: wrap;
+      gap: 5px; margin-bottom: 14px;
+    }
+
+    .room-tag {
+      font-size: 11px; color: var(--text-mid);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .room-btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid;
+      transition: background 200ms;
+      font-family: inherit;
+    }
+
+    .room-btn.available {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .room-btn.available:hover { background: var(--primary-dark); }
+
+    .room-btn.unavailable {
+      background: #F3F4F6;
+      color: #9CA3AF;
+      border-color: var(--border);
+      cursor: not-allowed;
+    }
+
+    /* ==========================================
+       RESPONSIVE
+    ========================================== */
+    @media (max-width: 1023px) {
+      #main { margin-left: 0; }
+      #hamburger { display: flex; }
+      .ub-info { display: none; }
+      .ub-btn svg:last-child { display: none; }
+    }
+
+    @media (max-width: 767px) {
+      #content { padding: 16px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .mid-row { grid-template-columns: 1fr; }
+      .room-grid { grid-template-columns: 1fr; }
+      .search-wrap { display: none; }
+      .stat-card .s-value { font-size: 26px; }
+      .page-header h1 { font-size: 18px; }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #content { padding: 20px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .room-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- ===== MOBILE OVERLAY ===== -->
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside id="sidebar" aria-label="Sidebar navigation">
+      <!-- Logo -->
+      <div class="sb-logo">
+        <div class="sb-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="2" y="8" width="16" height="11" rx="1" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/>
+            <path d="M1 8L10 2l9 6" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linejoin="round"/>
+            <rect x="8" y="13" width="4" height="6" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+          </svg>
+        </div>
+        <div class="sb-logo-text">
+          <p class="t1">ระบบจองห้องประชุม</p>
+          <p class="t2">สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav id="sidebar-nav" aria-label="Main menu">
+        <a href="dashboard.html" class="nav-item active" aria-current="page">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M2 7L9 2l7 5v9a1 1 0 01-1 1H3a1 1 0 01-1-1V7z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M6 18v-7h6v7" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <span>ภาพรวม</span>
+        </a>
+        <a href="calendar.html" class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="white" stroke-width="1.5"/>
+            <path d="M1.5 7.5h15" stroke="white" stroke-width="1.5"/>
+            <path d="M6 1.5v3M12 1.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>ปฏิทินการจอง</span>
+        </a>
+        <a href="booking.html" class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <circle cx="9" cy="9" r="7.5" stroke="white" stroke-width="1.5"/>
+            <path d="M9 5.5v7M5.5 9h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>จองห้องประชุม</span>
+        </a>
+        <a href="my-bookings.html" class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="white" stroke-width="1.5"/>
+            <path d="M6 6.5h6M6 9.5h6M6 12.5h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>รายการจองของฉัน</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <circle cx="9" cy="6.5" r="3.5" stroke="white" stroke-width="1.5"/>
+            <path d="M2 16.5c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>โปรไฟล์</span>
+        </a>
+      </nav>
+
+      <!-- User info -->
+      <div class="sb-user">
+        <div class="sb-user-row">
+          <div class="sb-avatar">สจ</div>
+          <div class="sb-user-info">
+            <p class="sb-user-name">นายสมชาย ใจดี</p>
+            <p class="sb-user-dept">ฝ่ายวิจัย</p>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="DLD.logout()">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M10 11l3-3-3-3M13 8H6" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN ===== -->
+    <div id="main">
+
+      <!-- NAVBAR -->
+      <header id="navbar">
+        <!-- Hamburger (mobile only) -->
+        <button id="hamburger" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+          <span class="bc-root">ระบบจองห้องประชุม</span>
+          <span class="bc-sep">/</span>
+          <span class="bc-page">ภาพรวม</span>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M13 13l-2.5-2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input type="search" placeholder="ค้นหาห้องประชุม..." aria-label="ค้นหา">
+        </div>
+
+        <div class="spacer"></div>
+
+        <!-- Notification Bell -->
+        <div class="nb-wrap" id="notif-wrap">
+          <button class="nb-btn" id="notif-btn" onclick="toggleNotif(event)" aria-label="การแจ้งเตือน" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3.2L2 13.5h14l-1.5-2.8V7.5A5.5 5.5 0 009 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7 14.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </button>
+          <span class="nb-badge" aria-label="3 การแจ้งเตือนใหม่">3</span>
+
+          <!-- Notification Dropdown -->
+          <div class="dropdown" id="notif-dd" role="menu">
+            <div class="dd-header">
+              <span class="dd-title">การแจ้งเตือน</span>
+              <span class="dd-action" tabindex="0">อ่านทั้งหมด</span>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-dot" style="background:#2E86AB;"></div>
+              <div>
+                <p class="notif-text">การจองห้อง A101 วันนี้ 10:00 ได้รับการอนุมัติแล้ว</p>
+                <p class="notif-time">5 นาทีที่แล้ว</p>
+              </div>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-dot" style="background:#D68910;"></div>
+              <div>
+                <p class="notif-text">เตือนความจำ: มีการจองห้องพรุ่งนี้ 14:00–16:00</p>
+                <p class="notif-time">1 ชั่วโมงที่แล้ว</p>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot" style="background:#CBD5E0;"></div>
+              <div>
+                <p class="notif-text">ระบบอัพเดต: เพิ่มฟีเจอร์ยืนยันการจองอัตโนมัติ</p>
+                <p class="notif-time">1 วันที่แล้ว</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Button -->
+        <div class="ub-wrap" id="user-wrap">
+          <button class="ub-btn" id="user-btn" onclick="toggleUser(event)" aria-expanded="false">
+            <div class="ub-avatar">สจ</div>
+            <div class="ub-info">
+              <p class="u-name">นายสมชาย ใจดี</p>
+              <p class="u-dept">ฝ่ายวิจัย</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M3 5l4 4 4-4" stroke="#718096" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <!-- User Dropdown -->
+          <div class="dropdown" id="user-dd" role="menu">
+            <div class="dd-user-info">
+              <p class="u2-name">นายสมชาย ใจดี</p>
+              <p class="u2-email">somchai@dld.go.th</p>
+            </div>
+            <div class="dd-menu">
+              <a href="profile.html" class="dd-menu-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+                โปรไฟล์ของฉัน
+              </a>
+              <button class="dd-menu-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M7 1v2M7 11v2M1 7h2M11 7h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+                ตั้งค่า
+              </button>
+              <div class="dd-divider"></div>
+              <button class="dd-menu-item danger" onclick="DLD.logout()">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M5 2.5H3a1 1 0 00-1 1v7a1 1 0 001 1h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  <path d="M9 10l3-2.5L9 5M12 7.5H5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ออกจากระบบ
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <main id="content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1>ภาพรวม</h1>
+            <p id="today-label">กำลังโหลด...</p>
+          </div>
+          <button class="btn-book" onclick="window.location.href='booking.html'">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="6.5" stroke="white" stroke-width="1.4"/>
+              <path d="M7 4v6M4 7h6" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            จองห้องประชุม
+          </button>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stat-grid">
+          <div class="stat-card" style="border-left-color:#1B4F72;">
+            <div>
+              <p class="s-label">ห้องทั้งหมด</p>
+              <p class="s-value" id="stat-rooms">—</p>
+              <p class="s-sub">ห้องในระบบ</p>
+            </div>
+            <div class="stat-icon" style="background:#E8F0F8;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="10" width="18" height="13" rx="1" fill="none" stroke="#1B4F72" stroke-width="1.6"/>
+                <path d="M1 10L12 3l11 7" stroke="#1B4F72" stroke-width="1.6" stroke-linejoin="round"/>
+                <rect x="9" y="16" width="6" height="7" rx="0.5" fill="#1B4F72" opacity=".5"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card" style="border-left-color:#17A589;">
+            <div>
+              <p class="s-label">ว่างวันนี้</p>
+              <p class="s-value" id="stat-available" style="color:#17A589;">—</p>
+              <p class="s-sub" id="stat-available-sub">จากห้องทั้งหมด</p>
+            </div>
+            <div class="stat-icon" style="background:#D1FAE5;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="#17A589" stroke-width="1.6"/>
+                <path d="M7.5 12l3 3 6-6" stroke="#17A589" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card" style="border-left-color:#2E86AB;">
+            <div>
+              <p class="s-label">การจองของฉัน</p>
+              <p class="s-value" id="stat-mybookings">—</p>
+              <p class="s-sub">รายการทั้งหมด</p>
+            </div>
+            <div class="stat-icon" style="background:#E0F2FE;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="4" y="3" width="16" height="18" rx="2" stroke="#2E86AB" stroke-width="1.6"/>
+                <path d="M8 8h8M8 12h8M8 16h5" stroke="#2E86AB" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card" style="border-left-color:#D68910;">
+            <div>
+              <p class="s-label">รอการอนุมัติ</p>
+              <p class="s-value" id="stat-pending" style="color:#D68910;">—</p>
+              <p class="s-sub">รายการ</p>
+            </div>
+            <div class="stat-icon" style="background:#FEF3C7;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="#D68910" stroke-width="1.6"/>
+                <path d="M12 7v5.5l3 2" stroke="#D68910" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- MID ROW -->
+        <div class="mid-row">
+
+          <!-- Mini Calendar -->
+          <div class="card">
+            <div class="cal-header">
+              <button class="cal-nav-btn" id="cal-prev" aria-label="เดือนก่อนหน้า">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <h3 class="cal-month-label" id="cal-month"></h3>
+              <button class="cal-nav-btn" id="cal-next" aria-label="เดือนถัดไป">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="cal-dow" aria-hidden="true">
+              <span>จ</span><span>อ</span><span>พ</span>
+              <span>พฤ</span><span>ศ</span><span>ส</span><span>อา</span>
+            </div>
+            <div id="cal-grid" role="grid" aria-label="ปฏิทิน"></div>
+
+            <div class="cal-legend">
+              <div class="legend-item">
+                <div class="legend-sq" style="background:#1B4F72;"></div>
+                <span>วันที่เลือก</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot"></div>
+                <span>มีการจอง</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-sq" style="background:#EBF5FB; border:1px solid #2E86AB;"></div>
+                <span>วันนี้</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Bookings -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">การจองล่าสุดของฉัน</h3>
+              <a href="my-bookings.html" class="card-link">ดูทั้งหมด →</a>
+            </div>
+
+            <div id="recent-bookings"></div>
+          </div>
+
+        </div><!-- /mid-row -->
+
+        <!-- ROOM CARDS -->
+        <div>
+          <div class="rooms-header">
+            <h3>ห้องประชุมแนะนำ</h3>
+            <a href="#" class="card-link">ดูห้องทั้งหมด →</a>
+          </div>
+          <div class="room-grid" id="room-grid"></div>
+        </div>
+
+      </main>
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <!-- ==========================================
+       JAVASCRIPT
+  ========================================== -->
+  <script src="api.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    checkAuth();        // ถ้าไม่มี token → redirect login ทันที
+    populateUserUI();   // เอาชื่อ/แผนกจริงใส่ sidebar + navbar
+
+    /* ===== SIDEBAR TOGGLE ===== */
+    var isMobile = window.innerWidth < 1024;
+
+    function updateLayout() {
+      isMobile = window.innerWidth < 1024;
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      if (!isMobile) {
+        sidebar.classList.remove('collapsed');
+        overlay.classList.remove('show');
+      }
+    }
+
+    window.toggleSidebar = function () {
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      var collapsed = sidebar.classList.toggle('collapsed');
+      overlay.classList.toggle('show', !collapsed);
+    };
+
+    window.closeSidebar = function () {
+      document.getElementById('sidebar').classList.add('collapsed');
+      document.getElementById('sidebar-overlay').classList.remove('show');
+    };
+
+    window.addEventListener('resize', updateLayout);
+    updateLayout();
+
+    // On mobile: start sidebar collapsed
+    if (isMobile) document.getElementById('sidebar').classList.add('collapsed');
+
+    /* ===== DROPDOWNS ===== */
+    window.toggleNotif = function (e) {
+      e.stopPropagation();
+      var dd = document.getElementById('notif-dd');
+      var btn = document.getElementById('notif-btn');
+      var open = dd.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open);
+      document.getElementById('user-dd').classList.remove('open');
+      document.getElementById('user-btn').setAttribute('aria-expanded', false);
+    };
+
+    window.toggleUser = function (e) {
+      e.stopPropagation();
+      var dd = document.getElementById('user-dd');
+      var btn = document.getElementById('user-btn');
+      var open = dd.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open);
+      document.getElementById('notif-dd').classList.remove('open');
+      document.getElementById('notif-btn').setAttribute('aria-expanded', false);
+    };
+
+    document.addEventListener('mousedown', function (e) {
+      if (!e.target.closest('#notif-wrap')) {
+        document.getElementById('notif-dd').classList.remove('open');
+        document.getElementById('notif-btn').setAttribute('aria-expanded', false);
+      }
+      if (!e.target.closest('#user-wrap')) {
+        document.getElementById('user-dd').classList.remove('open');
+        document.getElementById('user-btn').setAttribute('aria-expanded', false);
+      }
+    });
+
+    /* ===== TODAY LABEL ===== */
+    (function setToday() {
+      var days  = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+      var months= ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                   'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+      var now = new Date();
+      var label = 'วัน' + days[now.getDay()] + 'ที่ ' + now.getDate() + ' ' +
+                  months[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
+      document.getElementById('today-label').textContent = label;
+    }());
+
+    /* ===== MINI CALENDAR ===== */
+    var calState = {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth(),
+      selected: new Date().getDate(),
+      today: { y: new Date().getFullYear(), m: new Date().getMonth(), d: new Date().getDate() }
+    };
+
+    // Dates with bookings (simulate data)
+    var bookingDots = { '2026-5': new Set([26, 27, 28, 30]), '2026-6': new Set([3, 5, 10]) };
+
+    var MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+    function renderCalendar() {
+      var y = calState.year, m = calState.month;
+      var daysInMonth = new Date(y, m + 1, 0).getDate();
+      var firstDow = new Date(y, m, 1).getDay(); // 0=Sun
+      var offset = (firstDow + 6) % 7; // Mon=0
+
+      var dotSet = bookingDots[y + '-' + m] || new Set();
+      var grid = document.getElementById('cal-grid');
+      var frag = document.createDocumentFragment();
+
+      document.getElementById('cal-month').textContent =
+        MONTHS_TH[m] + ' ' + (y + 543);
+
+      // Empty cells
+      for (var i = 0; i < offset; i++) {
+        var empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        frag.appendChild(empty);
+      }
+
+      // Day cells
+      for (var d = 1; d <= daysInMonth; d++) {
+        var cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        var isToday = y === calState.today.y && m === calState.today.m && d === calState.today.d;
+        var isSel   = d === calState.selected;
+        if (isSel)   cell.classList.add('selected');
+        else if (isToday) cell.classList.add('today');
+
+        var num = document.createElement('span');
+        num.className = 'cn';
+        num.textContent = d;
+        cell.appendChild(num);
+
+        if (dotSet.has(d) && !isSel) {
+          var dot = document.createElement('div');
+          dot.className = 'cal-dot';
+          cell.appendChild(dot);
+        }
+
+        (function (day) {
+          cell.addEventListener('click', function () {
+            calState.selected = day;
+            renderCalendar();
+          });
+        }(d));
+
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('aria-label', d + ' ' + MONTHS_TH[m]);
+        frag.appendChild(cell);
+      }
+
+      // Pad end
+      var total = offset + daysInMonth;
+      var rem = total % 7;
+      if (rem !== 0) {
+        for (var j = 0; j < 7 - rem; j++) {
+          var ep = document.createElement('div');
+          ep.className = 'cal-cell empty';
+          frag.appendChild(ep);
+        }
+      }
+
+      grid.innerHTML = '';
+      grid.appendChild(frag);
+    }
+
+    document.getElementById('cal-prev').addEventListener('click', function () {
+      calState.month--;
+      if (calState.month < 0) { calState.month = 11; calState.year--; }
+      calState.selected = 0;
+      renderCalendar();
+    });
+
+    document.getElementById('cal-next').addEventListener('click', function () {
+      calState.month++;
+      if (calState.month > 11) { calState.month = 0; calState.year++; }
+      calState.selected = 0;
+      renderCalendar();
+    });
+
+    renderCalendar();
+
+    /* ===== BADGE HELPER ===== */
+    var badgeMap = {
+      pending:   { cls:'badge-pending',  label:'รอดำเนินการ' },
+      approved:  { cls:'badge-approved', label:'อนุมัติแล้ว' },
+      rejected:  { cls:'badge-rejected', label:'ปฏิเสธ'      },
+      cancelled: { cls:'badge-cancelled',label:'ยกเลิก'       },
+    };
+
+    /* แปลง YYYY-MM-DD → DD เดือน YY */
+    function fmtDate(str) {
+      if (!str) return '';
+      var ms = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      var p = str.split('-');
+      return p[2] + ' ' + ms[parseInt(p[1],10)-1] + ' ' + (parseInt(p[0],10)+543-2500);
+    }
+
+    /* ===== โหลดข้อมูลจาก API — ทำงานพร้อมกัน (Promise.all) ===== */
+    var rbWrap    = document.getElementById('recent-bookings');
+    var roomGrid  = document.getElementById('room-grid');
+
+    /* แสดงสถานะ loading ก่อน */
+    rbWrap.innerHTML   = '<p style="color:var(--text-muted);font-size:13px;padding:16px 0">กำลังโหลด...</p>';
+    roomGrid.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px 0">กำลังโหลด...</p>';
+
+    /*
+     * Promise.all([A, B, C]) = รอ A, B, C พร้อมกัน
+     * เร็วกว่าเรียกทีละอัน เพราะไม่ต้องรอต่อกัน
+     *
+     * ที่ต้องใช้ async IIFE (async function() { ... }()) เพราะ
+     * await ใช้ได้แค่ใน async function เท่านั้น
+     */
+    (async function loadDashboard() {
+      try {
+        var results = await Promise.all([
+          apiGet('/profile'),          // stats การจองของฉัน + ข้อมูล user
+          apiGet('/rooms'),            // รายการห้องทั้งหมด
+          apiGet('/bookings?limit=5')  // การจองล่าสุด 5 รายการ
+        ]);
+
+        var profile  = results[0];
+        var rooms    = results[1];
+        var bkResult = results[2];
+        var bookings = bkResult.bookings || [];
+
+        /* ── อัปเดต Stat Cards ── */
+        var totalRooms = rooms.length;
+        var availRooms = rooms.filter(function(r){ return r.status === 'active'; }).length;
+
+        document.getElementById('stat-rooms').textContent     = totalRooms;
+        document.getElementById('stat-available').textContent = availRooms;
+        document.getElementById('stat-available-sub').textContent = 'จาก ' + totalRooms + ' ห้อง';
+        document.getElementById('stat-mybookings').textContent = profile.stats ? profile.stats.totalBookings : '—';
+        document.getElementById('stat-pending').textContent   = profile.stats ? profile.stats.pendingBookings : '—';
+
+        /* ── Recent Bookings ── */
+        rbWrap.innerHTML = '';
+        if (bookings.length === 0) {
+          rbWrap.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:16px 0;text-align:center">ยังไม่มีการจอง</p>';
+        } else {
+          bookings.forEach(function(b) {
+            var bm    = badgeMap[b.status] || badgeMap.pending;
+            var rName = b.room ? b.room.name : 'ห้องประชุม';
+            var item  = document.createElement('div');
+            item.className = 'booking-item';
+            item.innerHTML =
+              '<div class="booking-info">' +
+                '<p class="booking-room">' + rName + '</p>' +
+                '<p class="booking-time">' + fmtDate(b.date) + ' · ' + b.startTime + ' – ' + b.endTime + '</p>' +
+                '<a href="my-bookings.html" class="booking-detail-link">ดูรายละเอียด →</a>' +
+              '</div>' +
+              '<span class="badge ' + bm.cls + '">' + bm.label + '</span>';
+            rbWrap.appendChild(item);
+          });
+        }
+
+        /* ── Room Cards ── */
+        roomGrid.innerHTML = '';
+        if (rooms.length === 0) {
+          roomGrid.innerHTML = '<p style="color:var(--text-muted);font-size:13px">ยังไม่มีห้องในระบบ</p>';
+        } else {
+          var serviceLabel = {
+            projector:'Projector', whiteboard:'Whiteboard',
+            video_conference:'VC System', aircon:'Air Con',
+            microphone:'Microphone', sound:'Sound System'
+          };
+          rooms.forEach(function(r) {
+            var avail = r.status === 'active';
+            var statusBadge = avail
+              ? '<span class="badge badge-approved" style="position:absolute;top:10px;right:10px;">ว่าง</span>'
+              : '<span class="badge badge-rejected" style="position:absolute;top:10px;right:10px;">ไม่ว่าง</span>';
+            var tags = (r.services || []).slice(0,3).map(function(s) {
+              return '<span class="room-tag">' + (serviceLabel[s] || s) + '</span>';
+            }).join('');
+            var btn = avail
+              ? '<button class="room-btn available" onclick="window.location.href=\'booking.html\'">จองเลย</button>'
+              : '<button class="room-btn unavailable" disabled>ไม่ว่าง</button>';
+
+            var card = document.createElement('div');
+            card.className = 'room-card';
+            card.innerHTML =
+              '<div class="room-img">' +
+                '<span class="room-img-label">[ ภาพห้องประชุม ]</span>' +
+                statusBadge +
+              '</div>' +
+              '<div class="room-body">' +
+                '<h4 class="room-name">' + r.name + '</h4>' +
+                '<div class="room-meta">' +
+                  '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1a3.2 3.2 0 00-3.2 3.2C2.8 7 6 11 6 11S9.2 7 9.2 4.2A3.2 3.2 0 006 1z" stroke="#718096" stroke-width="1.2"/><circle cx="6" cy="4" r="1.2" fill="#718096"/></svg>' +
+                  r.location +
+                '</div>' +
+                '<div class="room-meta">' +
+                  '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="4" r="2" stroke="#718096" stroke-width="1.2"/><path d="M2 11c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="#718096" stroke-width="1.2" stroke-linecap="round"/></svg>' +
+                  r.capacity + ' คน' +
+                '</div>' +
+                '<div class="room-tags">' + tags + '</div>' +
+                btn +
+              '</div>';
+            roomGrid.appendChild(card);
+          });
+        }
+
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+        rbWrap.innerHTML = '<p style="color:#C0392B;font-size:13px;padding:8px 0">โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า</p>';
+      }
+    }());
+
+  }());
+  </script>
+
+</body>
+</html>

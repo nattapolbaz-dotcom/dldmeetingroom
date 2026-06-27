@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จองห้องประชุม — ระบบจองห้องประชุม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #F0F4F8; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #F0F4F8; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
+    input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+    select { -webkit-appearance: none; appearance: none; }
+    textarea { resize: vertical; }
+    input, select, textarea, button { font-family: inherit; }
+
+    /* ── Animations ───────────────────────────────────────── */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes toastIn { from { transform: translateX(calc(100% + 32px)); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    #toast {
+      position: fixed; top: 24px; right: 24px; z-index: 9999;
+      min-width: 300px; max-width: 420px;
+      background: #17A589; color: #fff;
+      padding: 14px 18px; border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      display: none; align-items: center; gap: 10px;
+      font-size: 14px; font-weight: 500;
+      animation: toastIn 320ms cubic-bezier(0.16,1,0.3,1);
+    }
+    #toast.show { display: flex; }
+    #toast.toast-error { background: #C0392B; }
+
+    /* ── Modal ────────────────────────────────────────────── */
+    #modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,25,40,0.55);
+      z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-box {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 500px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.22); animation: modalIn 240ms ease; overflow: hidden;
+    }
+    .modal-header {
+      padding: 22px 26px 18px; border-bottom: 1px solid #E2E8F0;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: #1A2332; margin: 0 0 4px; }
+    .modal-sub   { font-size: 13px; color: #718096; margin: 0; }
+    .modal-close-btn {
+      width: 30px; height: 30px; border: none; background: none; cursor: pointer;
+      color: #A0AEC0; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 150ms;
+    }
+    .modal-close-btn:hover { background: #F0F4F8; color: #4A5568; }
+    .modal-body { padding: 20px 26px; }
+    .modal-grid {
+      display: grid; grid-template-columns: 120px 1fr;
+      gap: 10px 16px; font-size: 13px;
+    }
+    .modal-label { color: #718096; padding: 8px 0; border-bottom: 1px solid #F7FAFC; }
+    .modal-val   { font-weight: 500; color: #1A2332; padding: 8px 0; border-bottom: 1px solid #F7FAFC; }
+    .modal-label:last-of-type, .modal-val:last-of-type { border-bottom: none; }
+    .modal-note {
+      margin-top: 14px; padding: 12px 14px;
+      background: #FEF3C7; border-radius: 8px; border-left: 3px solid #D68910;
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 12px; color: #92400E; line-height: 1.5;
+    }
+    .modal-footer {
+      padding: 16px 26px; border-top: 1px solid #E2E8F0;
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .spinner { animation: spin 0.75s linear infinite; flex-shrink: 0; }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    #app { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ──────────────────────────────────────────── */
+    #sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 49;
+    }
+    #sidebar-overlay.show { display: block; }
+
+    #sidebar {
+      width: 240px; background: #1B4F72;
+      position: fixed; left: 0; top: 0; height: 100vh;
+      z-index: 50; display: flex; flex-direction: column;
+      transition: transform 280ms ease; overflow: hidden;
+    }
+    #sidebar.collapsed { transform: translateX(-240px); }
+
+    .sb-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .sb-logo-inner { display: flex; align-items: center; gap: 10px; }
+    .sb-logo-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,0.15);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);
+    }
+    .sb-logo-text { font-size: 13px; font-weight: 700; color: #fff; margin: 0; line-height: 1.2; }
+    .sb-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.55); margin: 2px 0 0; }
+
+    #sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    .sb-nav-link {
+      width: 100%; display: flex; align-items: center; gap: 12px;
+      padding: 11px 20px; background: transparent;
+      border: none; border-left: 3px solid transparent;
+      cursor: pointer; text-decoration: none;
+      transition: all 150ms;
+    }
+    .sb-nav-link:hover { background: rgba(255,255,255,0.08); }
+    .sb-nav-link.active {
+      background: rgba(255,255,255,0.15);
+      border-left-color: rgba(255,255,255,0.88);
+    }
+    .sb-nav-icon { flex-shrink: 0; opacity: 0.65; }
+    .sb-nav-link.active .sb-nav-icon { opacity: 1; }
+    .sb-nav-label { font-size: 13.5px; font-weight: 400; color: rgba(255,255,255,0.68); }
+    .sb-nav-link.active .sb-nav-label { font-weight: 600; color: rgba(255,255,255,0.96); }
+
+    .sb-user {
+      padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .sb-user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .sb-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.25);
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .sb-name { font-size: 13px; font-weight: 600; color: #fff; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-dept { font-size: 11px; color: rgba(255,255,255,0.55); margin: 2px 0 0; }
+    .sb-logout {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; background: rgba(255,255,255,0.08);
+      border: none; border-radius: 7px; cursor: pointer; transition: background 150ms;
+      font-size: 13px; color: rgba(255,255,255,0.7);
+    }
+    .sb-logout:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Main Area ────────────────────────────────────────── */
+    #main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 280ms ease; }
+
+    /* ── Navbar ───────────────────────────────────────────── */
+    #navbar {
+      height: 64px; background: #fff; border-bottom: 1px solid #E2E8F0;
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    #hamburger {
+      width: 38px; height: 38px; border: none; background: none;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+      border-radius: 8px; flex-shrink: 0; transition: background 150ms;
+    }
+    #hamburger:hover { background: #F0F4F8; }
+    .breadcrumb { display: flex; align-items: center; gap: 7px; white-space: nowrap; flex-shrink: 0; }
+    .breadcrumb-home { font-size: 13px; color: #A0AEC0; }
+    .breadcrumb-sep  { color: #D2D6DC; }
+    .breadcrumb-cur  { font-size: 13px; font-weight: 600; color: #1A2332; }
+
+    .search-wrap { flex: 1; max-width: 360px; position: relative; }
+    .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .search-input {
+      width: 100%; padding: 8px 12px 8px 32px;
+      border: 1.5px solid #E2E8F0; border-radius: 8px;
+      font-size: 13px; color: #1A2332; background: #F8FAFC;
+      outline: none; transition: all 200ms;
+    }
+    .search-input:focus { border-color: #1B4F72; background: #fff; box-shadow: 0 0 0 3px rgba(27,79,114,0.10); }
+
+    .nb-spacer { flex: 1; }
+
+    .nb-wrap { position: relative; }
+    .nb-btn {
+      width: 38px; height: 38px; border: none; background: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; color: #4A5568; transition: background 150ms;
+    }
+    .nb-btn:hover { background: #F0F4F8; }
+    .nb-badge {
+      position: absolute; top: 7px; right: 7px;
+      width: 15px; height: 15px; background: #C0392B; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff; font-size: 8px; font-weight: 700; color: #fff;
+    }
+    .nb-dd {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      width: 300px; background: #fff; border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.14); border: 1px solid #E2E8F0; overflow: hidden;
+    }
+    .nb-dd-head { padding: 12px 16px; border-bottom: 1px solid #F0F4F8; font-size: 13px; font-weight: 600; color: #1A2332; }
+    .nb-dd-item { padding: 12px 16px; border-bottom: 1px solid #F7FAFC; display: flex; gap: 10px; align-items: flex-start; }
+    .nb-dd-item:last-child { border-bottom: none; }
+    .nb-dot { width: 8px; height: 8px; border-radius: 50%; background: #1B4F72; margin-top: 4px; flex-shrink: 0; }
+    .nb-dd-text { font-size: 13px; color: #4A5568; line-height: 1.4; }
+
+    .ub-wrap { position: relative; }
+    .ub-btn {
+      display: flex; align-items: center; gap: 9px;
+      padding: 5px 8px; border-radius: 8px; cursor: pointer;
+      border: none; background: none; transition: background 150ms;
+    }
+    .ub-btn:hover { background: #F0F4F8; }
+    .ub-av {
+      width: 34px; height: 34px; border-radius: 50%; background: #1B4F72;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .ub-info { text-align: left; }
+    .ub-name { font-size: 13px; font-weight: 500; color: #1A2332; margin: 0; white-space: nowrap; }
+    .ub-dept { font-size: 11px; color: #718096; margin: 0; }
+    .ub-dd {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      width: 200px; background: #fff; border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.14); border: 1px solid #E2E8F0; overflow: hidden;
+    }
+    .ub-dd-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px; font-size: 13px; color: #4A5568;
+      text-decoration: none; border-bottom: 1px solid #F7FAFC;
+      transition: background 150ms; cursor: pointer;
+      background: none; border-left: none; border-right: none; border-top: none; width: 100%;
+    }
+    .ub-dd-item:last-child { border-bottom: none; }
+    .ub-dd-item:hover { background: #F8FAFC; }
+    .ub-dd-item.danger { color: #C0392B; }
+
+    /* ── Content ──────────────────────────────────────────── */
+    #content { flex: 1; padding: 28px; }
+
+    .page-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 22px; gap: 16px;
+    }
+    .page-title { font-size: 22px; font-weight: 700; color: #1A2332; margin: 0 0 4px; letter-spacing: -0.3px; }
+    .page-sub   { font-size: 13px; color: #718096; margin: 0; }
+
+    /* ── Error Banner ─────────────────────────────────────── */
+    #err-banner {
+      display: none; align-items: center; gap: 10px;
+      padding: 12px 16px; background: #FEE2E2;
+      border-radius: 8px; border-left: 3px solid #EF4444;
+      margin-bottom: 18px;
+    }
+    #err-banner span { font-size: 13px; color: #991B1B; font-weight: 500; }
+
+    /* ── Booking Grid ─────────────────────────────────────── */
+    .booking-grid { display: grid; grid-template-columns: 55fr 45fr; gap: 20px; align-items: start; }
+
+    /* ── Form Cards ───────────────────────────────────────── */
+    .form-card {
+      background: #fff; border-radius: 10px; padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid #F0F4F8;
+    }
+    .card-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .card-icon-blue   { background: #EBF5FB; }
+    .card-icon-indigo { background: #E8F0F8; }
+    .card-icon-green  { background: #E0F4F1; }
+    .card-title { font-size: 15px; font-weight: 600; color: #1A2332; margin: 0 0 2px; }
+    .card-sub   { font-size: 12px; color: #718096; margin: 0; }
+
+    /* ── Form Fields ──────────────────────────────────────── */
+    .field-group { margin-bottom: 16px; }
+    .field-label {
+      font-size: 13px; font-weight: 500; color: #4A5568;
+      display: block; margin-bottom: 6px;
+    }
+    .field-req { color: #C0392B; }
+    .field-icon-wrap { position: relative; }
+    .field-icon-left {
+      position: absolute; left: 11px; top: 50%;
+      transform: translateY(-50%); pointer-events: none;
+    }
+    .field-input {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid #E2E8F0; border-radius: 8px;
+      font-size: 14px; color: #1A2332; background: #fff;
+      outline: none; transition: border-color 200ms, box-shadow 200ms;
+    }
+    .field-input:focus { border-color: #1B4F72 !important; box-shadow: 0 0 0 3px rgba(27,79,114,0.10); }
+    .field-input-pl { padding-left: 34px; }
+    .field-select-pr { padding-right: 36px; }
+    .select-arrow {
+      position: absolute; right: 11px; top: 50%;
+      transform: translateY(-50%); pointer-events: none;
+    }
+    .field-textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #E2E8F0; border-radius: 8px; font-size: 14px; color: #1A2332; background: #fff; outline: none; transition: border-color 200ms, box-shadow 200ms; line-height: 1.5; }
+    .field-textarea:focus { border-color: #1B4F72; box-shadow: 0 0 0 3px rgba(27,79,114,0.10); }
+    .field-err { display: none; align-items: center; gap: 5px; margin-top: 5px; }
+    .field-err span { font-size: 12px; color: #C0392B; }
+    .field-warn { display: none; align-items: center; gap: 6px; margin-top: 6px; padding: 7px 12px; background: #FEF3C7; border-radius: 6px; }
+    .field-warn span { font-size: 12px; color: #92400E; }
+
+    /* ── Weekend warning ──────────────────────────────────── */
+    #weekend-warn {
+      display: none; align-items: center; gap: 5px;
+      padding: 8px 12px; background: #FEF3C7; border-radius: 6px; margin-top: 6px;
+      font-size: 12px; color: #92400E; font-weight: 500;
+    }
+
+    /* ── Booking Type Cards ───────────────────────────────── */
+    .bt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .bt-card {
+      padding: 13px 14px; border: 1.5px solid #E2E8F0; border-radius: 10px;
+      background: #fff; cursor: pointer; text-align: left;
+      transition: all 200ms;
+    }
+    .bt-card:hover { border-color: #1B4F72; }
+    .bt-card.active { background: #EBF5FB; border: 2px solid #1B4F72; }
+    .bt-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .bt-card-name { font-size: 13px; font-weight: 500; color: #1A2332; }
+    .bt-card.active .bt-card-name { font-weight: 600; color: #1B4F72; }
+    .bt-card-sub { font-size: 11px; color: #718096; margin: 0; line-height: 1.4; }
+    .bt-card.active .bt-card-sub { color: #2E86AB; }
+    .bt-icon { color: #1A2332; }
+    .bt-card.active .bt-icon { color: #1B4F72; }
+
+    /* ── Time picker ──────────────────────────────────────── */
+    .time-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; background: #F0F4F8; border-radius: 8px;
+    }
+    .time-chip-label { font-size: 13px; color: #4A5568; }
+    .time-chip-value { font-size: 13px; font-weight: 600; color: #1B4F72; }
+
+    /* ── Email Tags ───────────────────────────────────────── */
+    .email-tag-box {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 8px 10px; border: 1.5px solid #E2E8F0; border-radius: 8px;
+      background: #fff; min-height: 46px; align-items: flex-start;
+      transition: border-color 200ms, box-shadow 200ms; cursor: text;
+    }
+    .email-tag-box:focus-within { border-color: #1B4F72; box-shadow: 0 0 0 3px rgba(27,79,114,0.10); }
+    .email-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 6px 3px 10px; background: #EBF5FB;
+      border: 1px solid #BEE3F8; border-radius: 20px; white-space: nowrap;
+    }
+    .email-tag span { font-size: 12px; color: #1B4F72; font-weight: 500; }
+    .email-tag-remove {
+      display: flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border: none;
+      background: rgba(27,79,114,0.12); border-radius: 50%;
+      cursor: pointer; color: #1B4F72; font-size: 12px; line-height: 1;
+      transition: background 150ms;
+    }
+    .email-tag-remove:hover { background: rgba(27,79,114,0.25); }
+    #f-email-input {
+      border: none; outline: none; font-size: 13px; color: #1A2332;
+      background: transparent; min-width: 200px; flex: 1; padding: 3px 4px;
+    }
+    .email-hint { font-size: 11px; color: #A0AEC0; margin: 5px 0 0; }
+
+    /* ── Checkbox row ─────────────────────────────────────── */
+    .check-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .check-label input[type="checkbox"] { width: 16px; height: 16px; margin-top: 2px; cursor: pointer; accent-color: #1B4F72; flex-shrink: 0; }
+    .check-name { font-size: 14px; font-weight: 500; color: #1A2332; display: block; }
+    .check-sub  { font-size: 12px; color: #718096; }
+
+    /* ── Form Buttons ─────────────────────────────────────── */
+    .form-actions { display: flex; gap: 12px; }
+    .btn-primary {
+      flex: 1; padding: 13px 20px; background: #1B4F72; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 200ms;
+    }
+    .btn-primary:hover { background: #163d58; }
+    .btn-primary:active { background: #0f2d43; }
+    .btn-ghost {
+      padding: 13px 20px; background: #fff; color: #4A5568;
+      border: 1.5px solid #E2E8F0; border-radius: 8px;
+      font-size: 15px; font-weight: 500; cursor: pointer; transition: all 200ms;
+    }
+    .btn-ghost:hover { border-color: #4A5568; }
+    .btn-ghost-sm {
+      display: flex; align-items: center; gap: 6px;
+      padding: 9px 16px; background: #fff; color: #4A5568;
+      border: 1.5px solid #E2E8F0; border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      white-space: nowrap; transition: all 200ms; flex-shrink: 0;
+    }
+    .btn-ghost-sm:hover { border-color: #4A5568; }
+
+    /* ── Preview Card ─────────────────────────────────────── */
+    .preview-sticky { position: sticky; top: 88px; }
+    .preview-card {
+      background: #fff; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+    }
+    .prev-header { padding: 18px 20px; border-bottom: 1px solid #E2E8F0; transition: background 300ms; }
+    .prev-header-inner { display: flex; align-items: flex-start; gap: 12px; }
+    .prev-room-icon {
+      width: 42px; height: 42px; background: rgba(27,79,114,0.10);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .prev-room-name { font-size: 14px; font-weight: 700; color: #1A2332; margin: 0 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prev-location { font-size: 12px; color: #718096; margin: 0 0 2px; }
+    .prev-cap { display: flex; align-items: center; gap: 4px; }
+    .prev-cap span { font-size: 12px; color: #2E86AB; font-weight: 500; }
+
+    .prev-summary { padding: 18px 20px; border-bottom: 1px solid #F0F4F8; }
+    .prev-grid {
+      display: grid; grid-template-columns: 100px 1fr;
+      font-size: 13px;
+    }
+    .prev-key { color: #A0AEC0; padding: 7px 0; border-bottom: 1px solid #F7FAFC; }
+    .prev-val { font-weight: 500; color: #1A2332; padding: 7px 0 7px 8px; border-bottom: 1px solid #F7FAFC; }
+    .prev-val-time { font-weight: 600; color: #1B4F72; padding: 7px 0 7px 8px; border-bottom: 1px solid #F7FAFC; }
+    .prev-key:nth-last-child(2), .prev-val:last-child, .prev-val-time:last-child { border-bottom: none; }
+
+    .avail-wrap {
+      padding: 14px 20px; border-bottom: 1px solid transparent;
+      display: flex; align-items: center; gap: 10px; transition: background 300ms;
+    }
+    .avail-label { font-size: 13px; font-weight: 600; }
+
+    /* ── Timeline ─────────────────────────────────────────── */
+    .tl-section { padding: 18px 20px; }
+    .tl-heading { font-size: 12px; font-weight: 600; color: #718096; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .timeline-bar { position: relative; height: 38px; background: #F8FAFC; border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; margin-bottom: 8px; }
+    .tl-seg {
+      position: absolute; top: 0; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tl-seg-booked { background: rgba(239,68,68,0.14); border-left: 2px solid #EF4444; }
+    .tl-seg-sel    { border-left: 2px solid #17A589; border-right: 1px solid #17A589; }
+    .tl-seg-sel.conflict { border-color: #C0392B; }
+    .tl-label { font-size: 9px; font-weight: 600; white-space: nowrap; overflow: hidden; padding: 0 3px; }
+    .tl-label-booked { color: #991B1B; }
+    .tl-label-sel    { color: #065F46; }
+    .tl-label-sel.conflict { color: #991B1B; }
+    .tl-hours { display: flex; justify-content: space-between; padding: 0 1px; }
+    .tl-hour  { font-size: 10px; color: #A0AEC0; }
+    .tl-legend { display: flex; gap: 14px; margin-top: 10px; }
+    .tl-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #718096; }
+    .tl-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    #booked-slots-wrap { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #F0F4F8; }
+    .booked-slots-title { font-size: 11px; font-weight: 600; color: #718096; margin: 0 0 6px; }
+    #booked-slots-list { display: flex; flex-direction: column; gap: 4px; }
+    #conflict-warn {
+      display: none; margin-top: 12px; padding: 10px 12px;
+      background: #FEE2E2; border-radius: 8px; border-left: 3px solid #EF4444;
+      display: none; gap: 8px; align-items: flex-start;
+    }
+    #conflict-warn p { font-size: 12px; color: #991B1B; margin: 0; line-height: 1.5; font-weight: 500; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 1023px) {
+      #main { margin-left: 0; }
+      #hamburger { display: flex; }
+      .ub-info { display: none; }
+      .booking-grid { grid-template-columns: 1fr; }
+      .preview-sticky { position: static; }
+    }
+    @media (max-width: 767px) {
+      #content { padding: 16px; }
+      .bt-grid { grid-template-columns: 1fr 1fr; }
+      .form-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Toast ──────────────────────────────────────────────── -->
+<div id="toast" role="alert">
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+    <circle cx="10" cy="10" r="10" fill="rgba(255,255,255,0.2)"/>
+    <path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span id="toast-msg" style="flex:1;line-height:1.45;"></span>
+</div>
+
+<!-- ── Confirm Modal ──────────────────────────────────────── -->
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="modal-heading">ยืนยันการจองห้องประชุม</h3>
+        <p class="modal-sub">กรุณาตรวจสอบรายละเอียดก่อนยืนยัน</p>
+      </div>
+      <button type="button" id="modal-close" class="modal-close-btn" aria-label="ปิด">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        <span class="modal-label">ห้องประชุม</span>
+        <span class="modal-val" id="modal-room">—</span>
+        <span class="modal-label">วันที่</span>
+        <span class="modal-val" id="modal-date">—</span>
+        <span class="modal-label">เวลา</span>
+        <span class="modal-val" id="modal-time">—</span>
+        <span class="modal-label">ประเภท</span>
+        <span class="modal-val" id="modal-type">—</span>
+        <span class="modal-label">หัวข้อ</span>
+        <span class="modal-val" id="modal-title">—</span>
+        <span class="modal-label">ผู้เข้าร่วม</span>
+        <span class="modal-val" id="modal-count">—</span>
+        <span class="modal-label" style="border-bottom:none;">บริการเพิ่มเติม</span>
+        <span class="modal-val"  style="border-bottom:none;" id="modal-services">—</span>
+      </div>
+      <div class="modal-note">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px;">
+          <circle cx="8" cy="8" r="7" stroke="#D68910" stroke-width="1.5"/>
+          <path d="M8 7v4" stroke="#D68910" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="8" cy="4.5" r="0.8" fill="#D68910"/>
+        </svg>
+        <p style="margin:0;">คำขอจองจะถูกส่งให้ผู้ดูแลระบบพิจารณา คุณจะได้รับการแจ้งเตือนเมื่อได้รับการอนุมัติ</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="modal-cancel-btn" class="btn-ghost" style="padding:10px 20px;font-size:14px;">ย้อนกลับ</button>
+      <button type="button" id="modal-confirm-btn" style="padding:10px 22px;background:#1B4F72;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 200ms;">
+        <svg id="modal-spinner" class="spinner" width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:none;">
+          <circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/>
+          <path d="M8 2a6 6 0 016 6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span id="modal-btn-text">ยืนยันการจอง</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── App Layout ──────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside id="sidebar" aria-label="เมนูหลัก">
+    <div class="sb-logo">
+      <div class="sb-logo-inner">
+        <div class="sb-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="8" width="16" height="11" rx="1" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/>
+            <path d="M1 8L10 2l9 6" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linejoin="round"/>
+            <rect x="8" y="13" width="4" height="6" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+          </svg>
+        </div>
+        <div>
+          <p class="sb-logo-text">ระบบจองห้องประชุม</p>
+          <p class="sb-logo-sub">สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+        </div>
+      </div>
+    </div>
+
+    <nav id="sidebar-nav" aria-label="เมนูนำทาง">
+      <a href="dashboard.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <path d="M2 7L9 2l7 5v9a1 1 0 01-1 1H3a1 1 0 01-1-1V7z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M6 18v-7h6v7" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="sb-nav-label">ภาพรวม</span>
+      </a>
+      <a href="calendar.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="white" stroke-width="1.5"/>
+          <path d="M1.5 7.5h15" stroke="white" stroke-width="1.5"/>
+          <path d="M6 1.5v3M12 1.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">ปฏิทินการจอง</span>
+      </a>
+      <a href="booking.html" class="sb-nav-link active" aria-current="page">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7.5" stroke="white" stroke-width="1.5"/>
+          <path d="M9 5.5v7M5.5 9h7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">จองห้องประชุม</span>
+      </a>
+      <a href="my-bookings.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="white" stroke-width="1.5"/>
+          <path d="M6 6.5h6M6 9.5h6M6 12.5h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">รายการจองของฉัน</span>
+      </a>
+      <a href="profile.html" class="sb-nav-link">
+        <svg class="sb-nav-icon" width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="6.5" r="3.5" stroke="white" stroke-width="1.5"/>
+          <path d="M2 16.5c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="sb-nav-label">โปรไฟล์</span>
+      </a>
+    </nav>
+
+    <div class="sb-user">
+      <div class="sb-user-info">
+        <div class="sb-avatar">สจ</div>
+        <div style="min-width:0;">
+          <p class="sb-name">นายสมชาย ใจดี</p>
+          <p class="sb-dept">ฝ่ายวิจัย</p>
+        </div>
+      </div>
+      <button class="sb-logout" onclick="DLD.logout()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 11l3-3-3-3M13 8H6" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        ออกจากระบบ
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main Area ─────────────────────────────────────────── -->
+  <div id="main">
+
+    <!-- ── Navbar ────────────────────────────────────────────── -->
+    <header id="navbar">
+      <button id="hamburger" onclick="toggleSidebar()" aria-label="เปิด/ปิดเมนู">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 6h14M3 10h14M3 14h14" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div class="breadcrumb">
+        <span class="breadcrumb-home">ระบบจองห้องประชุม</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-cur">จองห้องประชุม</span>
+      </div>
+
+      <div class="search-wrap">
+        <div class="search-icon">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="7" cy="7" r="5" stroke="#A0AEC0" stroke-width="1.5"/>
+            <path d="M13 13l-2.5-2.5" stroke="#A0AEC0" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <input type="text" class="search-input" placeholder="ค้นหาห้องประชุม..." aria-label="ค้นหาห้องประชุม">
+      </div>
+
+      <div class="nb-spacer"></div>
+
+      <!-- Notification -->
+      <div class="nb-wrap" id="notif-wrap">
+        <button class="nb-btn" id="notif-btn" onclick="toggleNotif(event)" aria-label="การแจ้งเตือน" aria-expanded="false">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3.2L2 13.5h14l-1.5-2.8V7.5A5.5 5.5 0 009 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M7 14.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+        <div class="nb-badge" aria-hidden="true">3</div>
+        <div class="nb-dd" id="notif-dd" role="menu">
+          <div class="nb-dd-head">การแจ้งเตือน</div>
+          <div class="nb-dd-item">
+            <div class="nb-dot"></div>
+            <span class="nb-dd-text">คำขอจองห้อง A101 ได้รับการอนุมัติแล้ว</span>
+          </div>
+          <div class="nb-dd-item">
+            <div class="nb-dot"></div>
+            <span class="nb-dd-text">ห้อง B201 ว่างวันพฤหัสบดีนี้</span>
+          </div>
+          <div class="nb-dd-item">
+            <div class="nb-dot"></div>
+            <span class="nb-dd-text">การประชุมพรุ่งนี้ 10:00 น. ใกล้ถึงแล้ว</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- User menu -->
+      <div class="ub-wrap" id="user-wrap">
+        <button class="ub-btn" id="user-btn" onclick="toggleUser(event)" aria-expanded="false">
+          <div class="ub-av">สจ</div>
+          <div class="ub-info">
+            <p class="ub-name">นายสมชาย ใจดี</p>
+            <p class="ub-dept">ฝ่ายวิจัย</p>
+          </div>
+        </button>
+        <div class="ub-dd" id="user-dd" role="menu">
+          <a href="profile.html" class="ub-dd-item">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            โปรไฟล์
+          </a>
+          <button class="ub-dd-item danger" onclick="DLD.logout()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            ออกจากระบบ
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Content ────────────────────────────────────────────── -->
+    <main id="content">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">จองห้องประชุม</h1>
+          <p class="page-sub">กรอกรายละเอียดเพื่อส่งคำขอจองห้องประชุมล่วงหน้า</p>
+        </div>
+        <button type="button" class="btn-ghost-sm clear-btn">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          ล้างข้อมูล
+        </button>
+      </div>
+
+      <!-- Error banner -->
+      <div id="err-banner" role="alert">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;">
+          <circle cx="8" cy="8" r="7" stroke="#C0392B" stroke-width="1.5"/>
+          <path d="M8 5v4" stroke="#C0392B" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="8" cy="10.5" r="0.8" fill="#C0392B"/>
+        </svg>
+        <span id="err-banner-msg"></span>
+      </div>
+
+      <!-- 2-col booking grid -->
+      <div class="booking-grid">
+
+        <!-- ═══════════════ LEFT: FORM ═══════════════ -->
+        <form id="booking-form" novalidate>
+
+          <!-- SECTION 1: ห้องและเวลา -->
+          <div class="form-card">
+            <div class="card-header">
+              <div class="card-icon card-icon-blue">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="#1B4F72" stroke-width="1.5"/>
+                  <path d="M1.5 7.5h15" stroke="#1B4F72" stroke-width="1.5"/>
+                  <path d="M6 1.5v3M12 1.5v3" stroke="#1B4F72" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="6" cy="11" r="1" fill="#1B4F72"/>
+                  <circle cx="9" cy="11" r="1" fill="#1B4F72"/>
+                  <circle cx="12" cy="11" r="1" fill="#1B4F72"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">เลือกห้องและเวลา</h2>
+                <p class="card-sub">ระบุห้องประชุม วันที่ และช่วงเวลาที่ต้องการ</p>
+              </div>
+            </div>
+
+            <!-- Room select -->
+            <div class="field-group">
+              <label class="field-label" for="f-room">ห้องประชุม <span class="field-req">*</span></label>
+              <div class="field-icon-wrap">
+                <div class="field-icon-left">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <rect x="2" y="7" width="12" height="8" rx="1" stroke="#718096" stroke-width="1.4"/>
+                    <path d="M1 7L8 2l7 5" stroke="#718096" stroke-width="1.4" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <select id="f-room" class="field-input field-input-pl field-select-pr">
+                  <option value="">— เลือกห้องประชุม —</option>
+                  <option value="A101">ห้องประชุม A101 (ความจุ 10 คน)</option>
+                  <option value="B201">ห้องประชุมใหญ่ B201 (ความจุ 30 คน)</option>
+                  <option value="C301">ห้องสัมมนา C301 (ความจุ 50 คน)</option>
+                  <option value="D101">ห้องประชุมย่อย D101 (ความจุ 8 คน)</option>
+                </select>
+                <div class="select-arrow">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 5l4 4 4-4" stroke="#718096" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="field-err" id="err-room">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="6" r="5.5" stroke="#C0392B" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="#C0392B" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <span>กรุณาเลือกห้องประชุม</span>
+              </div>
+            </div>
+
+            <!-- Date picker -->
+            <div class="field-group">
+              <label class="field-label" for="f-date">วันที่จอง <span class="field-req">*</span></label>
+              <div class="field-icon-wrap">
+                <div class="field-icon-left">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="#718096" stroke-width="1.4"/>
+                    <path d="M1.5 6.5h13" stroke="#718096" stroke-width="1.4"/>
+                    <path d="M5 1v3M11 1v3" stroke="#718096" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <input type="date" id="f-date" class="field-input field-input-pl">
+              </div>
+              <div id="weekend-warn">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6.5" stroke="#D68910" stroke-width="1.2"/>
+                  <path d="M7 4.5v3" stroke="#D68910" stroke-width="1.4" stroke-linecap="round"/>
+                  <circle cx="7" cy="9.5" r="0.7" fill="#D68910"/>
+                </svg>
+                <span>วันเสาร์-อาทิตย์ไม่สามารถจองได้ กรุณาเลือกวันทำการ</span>
+              </div>
+              <div class="field-err" id="err-date">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="6" r="5.5" stroke="#C0392B" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="#C0392B" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <span>กรุณาเลือกวันที่</span>
+              </div>
+            </div>
+
+            <!-- Booking type cards -->
+            <div class="field-group">
+              <label class="field-label">ประเภทการจอง</label>
+              <div class="bt-grid">
+
+                <button type="button" id="bt-hourly" class="bt-card active">
+                  <div class="bt-card-top">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="bt-icon">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+                      <path d="M8 5v3.5l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                    <span class="bt-card-name">รายชั่วโมง</span>
+                  </div>
+                  <p class="bt-card-sub">เลือกเวลาเริ่ม-สิ้นสุดได้เอง<br>ช่วง 08:00–17:00</p>
+                </button>
+
+                <button type="button" id="bt-2hour" class="bt-card">
+                  <div class="bt-card-top">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="bt-icon">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+                      <path d="M8 5v3.5l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      <path d="M8 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                    <span class="bt-card-name">2 ชั่วโมง</span>
+                  </div>
+                  <p class="bt-card-sub">ช่วงเวลา 2 ชั่วโมง<br>เลือกเวลาเริ่มได้เอง</p>
+                </button>
+
+                <button type="button" id="bt-morning" class="bt-card">
+                  <div class="bt-card-top">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="bt-icon">
+                      <path d="M2 8h12M8 2v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+                    </svg>
+                    <span class="bt-card-name">ครึ่งวันเช้า</span>
+                  </div>
+                  <p class="bt-card-sub">ช่วงเช้า<br>08:00–12:00</p>
+                </button>
+
+                <button type="button" id="bt-afternoon" class="bt-card">
+                  <div class="bt-card-top">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="bt-icon">
+                      <path d="M2 8h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+                      <path d="M5 11l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="bt-card-name">ครึ่งวันบ่าย</span>
+                  </div>
+                  <p class="bt-card-sub">ช่วงบ่าย<br>13:00–17:00</p>
+                </button>
+
+              </div>
+            </div>
+
+            <!-- Time picker (hourly/2hour only) -->
+            <div id="time-picker-wrap" class="field-group">
+              <label class="field-label" for="f-start">เวลาเริ่มต้น</label>
+              <div class="field-icon-wrap">
+                <div class="field-icon-left">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="#718096" stroke-width="1.4"/>
+                    <path d="M8 5v3.5l2 1.5" stroke="#718096" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <select id="f-start" class="field-input field-input-pl field-select-pr">
+                  <!-- populated by JS -->
+                </select>
+                <div class="select-arrow">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 5l4 4 4-4" stroke="#718096" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time display chip -->
+            <div class="time-chip">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="#4A5568" stroke-width="1.4"/>
+                <path d="M8 5v3.5l2 1.5" stroke="#4A5568" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <span class="time-chip-label">ช่วงเวลาที่เลือก:</span>
+              <span class="time-chip-value"><span id="display-start">09:00</span> – <span id="display-end">10:00</span> น.</span>
+            </div>
+          </div>
+
+          <!-- SECTION 2: รายละเอียดการประชุม -->
+          <div class="form-card">
+            <div class="card-header">
+              <div class="card-icon card-icon-indigo">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="#2E86AB" stroke-width="1.5"/>
+                  <path d="M6 6.5h6M6 9.5h6M6 12.5h4" stroke="#2E86AB" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">รายละเอียดการประชุม</h2>
+                <p class="card-sub">ระบุหัวข้อ วัตถุประสงค์ และผู้เข้าร่วม</p>
+              </div>
+            </div>
+
+            <!-- Meeting title -->
+            <div class="field-group">
+              <label class="field-label" for="f-title">ชื่อการประชุม/หัวข้อ <span class="field-req">*</span></label>
+              <input type="text" id="f-title" class="field-input" placeholder="เช่น ประชุมทีมวิจัยประจำสัปดาห์">
+              <div class="field-err" id="err-title">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="6" r="5.5" stroke="#C0392B" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="#C0392B" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <span>กรุณากรอกชื่อการประชุม</span>
+              </div>
+            </div>
+
+            <!-- Purpose -->
+            <div class="field-group">
+              <label class="field-label" for="f-purpose">วัตถุประสงค์</label>
+              <textarea id="f-purpose" class="field-textarea" rows="3" placeholder="อธิบายวัตถุประสงค์ของการประชุม..."></textarea>
+            </div>
+
+            <!-- Attendee count -->
+            <div class="field-group">
+              <label class="field-label" for="f-count">จำนวนผู้เข้าร่วม (คน)</label>
+              <div class="field-icon-wrap">
+                <div class="field-icon-left">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="6" cy="5" r="2.5" stroke="#718096" stroke-width="1.4"/>
+                    <path d="M1.5 13c0-2.8 2-4.5 4.5-4.5" stroke="#718096" stroke-width="1.4" stroke-linecap="round"/>
+                    <circle cx="11.5" cy="6" r="2" stroke="#718096" stroke-width="1.3"/>
+                    <path d="M8.5 13.5c0-2.2 1.3-3.5 3-3.5 1.7 0 3 1.3 3 3.5" stroke="#718096" stroke-width="1.3" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <input type="number" id="f-count" class="field-input field-input-pl" min="1" max="200" placeholder="0">
+              </div>
+              <div class="field-warn" id="cap-warn">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1.5L1.2 12h11.6L7 1.5z" stroke="#D68910" stroke-width="1.3" stroke-linejoin="round"/>
+                  <path d="M7 5.5v3.5" stroke="#D68910" stroke-width="1.3" stroke-linecap="round"/>
+                  <circle cx="7" cy="10.5" r="0.6" fill="#D68910"/>
+                </svg>
+                <span id="cap-warn-text"></span>
+              </div>
+            </div>
+
+            <!-- Email tags -->
+            <div class="field-group">
+              <label class="field-label">ผู้เข้าร่วมประชุม (อีเมล)</label>
+              <div class="email-tag-box" id="email-tags-container">
+                <input type="text" id="f-email-input" placeholder="พิมพ์อีเมล แล้วกด Enter เพื่อเพิ่ม..." autocomplete="off">
+              </div>
+              <p class="email-hint">พิมพ์อีเมลแล้วกด Enter เพื่อเพิ่ม</p>
+            </div>
+          </div>
+
+          <!-- SECTION 3: บริการเพิ่มเติม -->
+          <div class="form-card">
+            <div class="card-header">
+              <div class="card-icon card-icon-green">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M9 1.5C5 1.5 2 4.5 2 8.5c0 2.4 1.2 4.5 3 5.8V16h8v-1.7c1.8-1.3 3-3.4 3-5.8C16 4.5 13 1.5 9 1.5z" stroke="#17A589" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M7 16h4M6.5 9l2 2 3-3" stroke="#17A589" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">บริการเพิ่มเติม</h2>
+                <p class="card-sub">ระบุบริการหรือความต้องการพิเศษ</p>
+              </div>
+            </div>
+
+            <!-- Setup checkbox -->
+            <div class="field-group">
+              <label class="check-label">
+                <input type="checkbox" id="f-setup">
+                <div>
+                  <span class="check-name">ต้องการแม่บ้านจัดเตรียมห้อง</span>
+                  <span class="check-sub">จัดโต๊ะ เก้าอี้ และอุปกรณ์ก่อนเริ่มประชุม</span>
+                </div>
+              </label>
+              <div id="setup-details-wrap" style="display:none;margin-top:12px;padding-left:26px;">
+                <label class="field-label" for="f-setup-details" style="font-size:12px;">รายละเอียดการจัดเตรียม</label>
+                <textarea id="f-setup-details" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#1A2332;background:#F8FAFC;outline:none;transition:border-color 200ms;font-family:inherit;" placeholder="เช่น จัดโต๊ะรูปตัว U สำหรับ 20 คน, เตรียมน้ำดื่ม..."></textarea>
+              </div>
+            </div>
+
+            <!-- Equipment checkbox -->
+            <div class="field-group" style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #F0F4F8;">
+              <label class="check-label">
+                <input type="checkbox" id="f-equipment">
+                <div>
+                  <span class="check-name">ต้องการอุปกรณ์เพิ่มเติม</span>
+                  <span class="check-sub">กระดาษ ปากกา ไมโครโฟนพกพา ฯลฯ</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Notes -->
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label" for="f-notes">หมายเหตุ</label>
+              <textarea id="f-notes" class="field-textarea" rows="3" placeholder="หมายเหตุหรือข้อมูลเพิ่มเติมอื่น ๆ..."></textarea>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <path d="M2 8l4 4 8-8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              ส่งคำขอจอง
+            </button>
+            <button type="button" class="btn-ghost clear-btn">ล้างข้อมูล</button>
+          </div>
+
+        </form>
+
+        <!-- ═══════════════ RIGHT: PREVIEW ═══════════════ -->
+        <div class="preview-sticky">
+          <div class="preview-card">
+
+            <!-- Room header -->
+            <div class="prev-header" id="prev-header" style="background:#F8FAFC;">
+              <div class="prev-header-inner">
+                <div class="prev-room-icon">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <rect x="2" y="8" width="16" height="11" rx="1" stroke="#1B4F72" stroke-width="1.5"/>
+                    <path d="M1 8L10 2l9 6" stroke="#1B4F72" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <p class="prev-room-name" id="prev-room-name">ยังไม่ได้เลือกห้องประชุม</p>
+                  <p class="prev-location" id="prev-location">—</p>
+                  <div class="prev-cap" id="prev-capacity-wrap" style="display:none;">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <circle cx="5" cy="4.5" r="1.8" stroke="#2E86AB" stroke-width="1.2"/>
+                      <path d="M1.5 11c0-2 1.5-3 3.5-3s3.5 1 3.5 3" stroke="#2E86AB" stroke-width="1.2" stroke-linecap="round"/>
+                    </svg>
+                    <span>ความจุ <span id="prev-capacity">—</span> คน</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary grid -->
+            <div class="prev-summary">
+              <div class="prev-grid">
+                <span class="prev-key">วันที่</span>
+                <span class="prev-val" id="prev-date">—</span>
+                <span class="prev-key">เวลา</span>
+                <span class="prev-val-time" id="prev-time">—</span>
+                <span class="prev-key">ประเภท</span>
+                <span class="prev-val" id="prev-type">รายชั่วโมง</span>
+                <span class="prev-key">ผู้เข้าร่วม</span>
+                <span class="prev-val" id="prev-count">—</span>
+                <span class="prev-key" style="border-bottom:none;">หัวข้อ</span>
+                <span class="prev-val" id="prev-title" style="border-bottom:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+              </div>
+            </div>
+
+            <!-- Availability badge -->
+            <div class="avail-wrap" id="avail-wrap" style="background:#F8FAFC;border-bottom-color:#E2E8F0;">
+              <span id="avail-icon-check" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="9" r="8.5" stroke="#065F46" stroke-width="1.3"/>
+                  <path d="M5 9.5l3 3 5-5" stroke="#065F46" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span id="avail-icon-info" style="display:inline;">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="9" r="8.5" stroke="#A0AEC0" stroke-width="1.3"/>
+                  <path d="M9 8v4" stroke="#A0AEC0" stroke-width="1.6" stroke-linecap="round"/>
+                  <circle cx="9" cy="5.5" r="0.9" fill="#A0AEC0"/>
+                </svg>
+              </span>
+              <span id="avail-icon-x" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="9" r="8.5" stroke="#991B1B" stroke-width="1.3"/>
+                  <path d="M5.5 5.5l7 7M12.5 5.5l-7 7" stroke="#991B1B" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="avail-label" id="avail-label" style="color:#A0AEC0;">กรุณาเลือกห้องประชุม</span>
+            </div>
+
+            <!-- Timeline -->
+            <div class="tl-section">
+              <p class="tl-heading">Timeline — ตารางการจองวันนี้</p>
+
+              <div class="timeline-bar">
+                <div id="timeline-booked"></div>
+                <div id="timeline-sel" class="tl-seg tl-seg-sel" style="display:none;background:rgba(23,165,137,0.15);">
+                  <span class="tl-label tl-label-sel">เลือกแล้ว</span>
+                </div>
+              </div>
+
+              <div class="tl-hours">
+                <span class="tl-hour">8:00</span>
+                <span class="tl-hour">10:00</span>
+                <span class="tl-hour">12:00</span>
+                <span class="tl-hour">14:00</span>
+                <span class="tl-hour">16:00</span>
+                <span class="tl-hour">17:00</span>
+              </div>
+
+              <div class="tl-legend">
+                <div class="tl-legend-item">
+                  <div class="tl-legend-dot" style="background:rgba(239,68,68,0.14);border:1.5px solid #EF4444;"></div>
+                  จองแล้ว
+                </div>
+                <div class="tl-legend-item">
+                  <div class="tl-legend-dot" style="background:rgba(23,165,137,0.15);border:1.5px solid #17A589;"></div>
+                  ช่วงเวลาที่เลือก
+                </div>
+              </div>
+
+              <!-- Booked slots list -->
+              <div id="booked-slots-wrap">
+                <p class="booked-slots-title">ช่วงเวลาที่ถูกจองแล้ว:</p>
+                <div id="booked-slots-list"></div>
+              </div>
+
+              <!-- Conflict warning -->
+              <div id="conflict-warn" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px;">
+                  <path d="M7 1.5L1.2 12h11.6L7 1.5z" stroke="#C0392B" stroke-width="1.3" stroke-linejoin="round"/>
+                  <path d="M7 5.5v3" stroke="#C0392B" stroke-width="1.3" stroke-linecap="round"/>
+                  <circle cx="7" cy="10" r="0.6" fill="#C0392B"/>
+                </svg>
+                <p id="conflict-msg"></p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- /preview -->
+
+      </div>
+      <!-- /booking-grid -->
+
+    </main>
+  </div>
+  <!-- /main -->
+</div>
+<!-- /app -->
+
+<script src="api.js"></script>
+<script>
+(function () {
+  'use strict';
+  checkAuth();
+  populateUserUI();
+
+  /* ── Helpers ─────────────────────────────────────────────── */
+  function $ (id) { return document.getElementById(id); }
+
+  /* ── State ───────────────────────────────────────────────── */
+  var state = {
+    selectedRoom   : '',
+    selectedDate   : '',
+    bookingType    : 'hourly',
+    startHour      : 9,
+    meetingTitle   : '',
+    purpose        : '',
+    attendeeCount  : '',
+    emailInput     : '',
+    attendeeEmails : [],
+    needsSetup     : false,
+    setupDetails   : '',
+    needsEquipment : false,
+    notes          : '',
+    submitted      : false,
+    isSubmitting   : false,
+  };
+
+  /* ── Room Data — โหลดจาก API ─────────────────────────────── */
+  /*
+   * ROOMS เป็น Object ที่ map roomId → ข้อมูลห้อง
+   * เริ่มต้นเป็น {} แล้วค่อย populate จาก API
+   */
+  var ROOMS = {};
+
+  /*
+   * BOOKINGS ใช้สำหรับ highlight timeslot ที่ถูกจองแล้ว
+   * ตอนนี้ยังไม่ดึงจาก API — ปล่อยว่างไว้ก่อน
+   * Server จะ validate conflict ให้เองตอน submit
+   */
+  var BOOKINGS = {};
+
+  /* โหลดรายการห้องจาก API แล้วใส่ใน <select> */
+  (async function loadRooms() {
+    var sel = $('f-room');
+    try {
+      var rooms = await apiGet('/rooms');
+      /* เก็บลง ROOMS object */
+      rooms.forEach(function(r) {
+        ROOMS[r._id] = { name: r.name, location: r.location, capacity: r.capacity };
+      });
+
+      /* ลบ options hardcode ออก แล้วใส่ใหม่จาก API */
+      sel.innerHTML = '<option value="">— เลือกห้องประชุม —</option>';
+      rooms.forEach(function(r) {
+        var opt = document.createElement('option');
+        opt.value       = r._id;
+        opt.textContent = r.name + ' (ความจุ ' + r.capacity + ' คน)';
+        if (r.status !== 'active') {
+          opt.disabled        = true;
+          opt.textContent    += ' — ไม่พร้อมให้บริการ';
+        }
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      sel.innerHTML = '<option value="">โหลดห้องไม่สำเร็จ กรุณารีเฟรช</option>';
+      console.error('loadRooms:', err);
+    }
+  }());
+
+  var BT_LABELS = {
+    hourly    : 'รายชั่วโมง',
+    '2hour'   : '2 ชั่วโมง',
+    morning   : 'ครึ่งวันเช้า',
+    afternoon : 'ครึ่งวันบ่าย',
+  };
+
+  /* ── Domain helpers ──────────────────────────────────────── */
+  function getRange () {
+    var h = parseInt(state.startHour) || 9;
+    if (state.bookingType === 'morning')   return { s: 8,  e: 12 };
+    if (state.bookingType === 'afternoon') return { s: 13, e: 17 };
+    if (state.bookingType === '2hour')     return { s: h,  e: h + 2 };
+    return { s: h, e: h + 1 };
+  }
+
+  function getBooked (room, date) {
+    return ((BOOKINGS[room] || {})[date]) || [];
+  }
+
+  function checkConflict (room, date, range) {
+    if (!room || !date) return false;
+    return getBooked(room, date).some(function (b) {
+      return !(range.e <= b.s || range.s >= b.e);
+    });
+  }
+
+  function pad (h) { return String(h).padStart(2, '0') + ':00'; }
+
+  function fmtDate (d) {
+    if (!d) return '—';
+    var o    = new Date(d + 'T00:00:00');
+    var days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    var mths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return 'วัน' + days[o.getDay()] + 'ที่ ' + o.getDate() + ' ' + mths[o.getMonth()] + ' ' + (o.getFullYear() + 543);
+  }
+
+  function isWeekend (d) {
+    if (!d) return false;
+    var day = new Date(d + 'T00:00:00').getDay();
+    return day === 0 || day === 6;
+  }
+
+  /* ── Toast ───────────────────────────────────────────────── */
+  var toastTimer;
+  function showToast (msg, type) {
+    var t   = $('toast');
+    var txt = $('toast-msg');
+    txt.textContent = msg;
+    t.className = 'show' + (type === 'error' ? ' toast-error' : '');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = ''; }, 4000);
+  }
+
+  /* ── Update UI ───────────────────────────────────────────── */
+  function updateUI () {
+    var s      = state;
+    var rd     = s.selectedRoom ? ROOMS[s.selectedRoom] : null;
+    var range  = getRange();
+    var wkend  = isWeekend(s.selectedDate);
+    var booked = getBooked(s.selectedRoom, s.selectedDate);
+    var conflict = checkConflict(s.selectedRoom, s.selectedDate, range);
+    var capWarn  = !!(rd && s.attendeeCount && parseInt(s.attendeeCount) > rd.capacity);
+
+    /* ── Booking type card styles ── */
+    ['hourly', '2hour', 'morning', 'afternoon'].forEach(function (type) {
+      var card = $('bt-' + type);
+      if (card) card.classList.toggle('active', s.bookingType === type);
+    });
+
+    /* ── Time picker visibility ── */
+    var showTp = s.bookingType === 'hourly' || s.bookingType === '2hour';
+    $('time-picker-wrap').style.display = showTp ? '' : 'none';
+
+    /* ── Rebuild time options ── */
+    var maxH = s.bookingType === '2hour' ? 15 : 16;
+    var sel  = $('f-start');
+    var needRebuild = sel.options.length === 0 ||
+      parseInt(sel.options[sel.options.length - 1].value) !== maxH;
+    if (needRebuild) {
+      sel.innerHTML = '';
+      for (var h = 8; h <= maxH; h++) {
+        var opt = document.createElement('option');
+        opt.value = String(h);
+        opt.textContent = pad(h);
+        sel.appendChild(opt);
+      }
+    }
+    /* Clamp startHour */
+    if (s.startHour > maxH) state.startHour = maxH;
+    sel.value = String(state.startHour);
+
+    /* ── Time display chip ── */
+    $('display-start').textContent = pad(range.s);
+    $('display-end').textContent   = pad(range.e);
+
+    /* ── Room border ── */
+    $('f-room').style.borderColor = (s.submitted && !s.selectedRoom) ? '#C0392B'
+                                  : s.selectedRoom                   ? '#17A589'
+                                  :                                    '#E2E8F0';
+
+    /* ── Date border + weekend warn ── */
+    $('f-date').style.borderColor = (s.submitted && !s.selectedDate) ? '#C0392B'
+                                  : (s.selectedDate && !wkend)       ? '#17A589'
+                                  : wkend                            ? '#D68910'
+                                  :                                    '#E2E8F0';
+    $('weekend-warn').style.display = wkend ? 'flex' : 'none';
+
+    /* ── Field errors (after submit) ── */
+    $('err-room').style.display  = (s.submitted && !s.selectedRoom)        ? 'flex' : 'none';
+    $('err-date').style.display  = (s.submitted && !s.selectedDate)        ? 'flex' : 'none';
+    $('err-title').style.display = (s.submitted && !s.meetingTitle.trim()) ? 'flex' : 'none';
+
+    /* ── Title border ── */
+    $('f-title').style.borderColor = (s.submitted && !s.meetingTitle.trim()) ? '#C0392B'
+                                   : s.meetingTitle.trim()                   ? '#17A589'
+                                   :                                           '#E2E8F0';
+
+    /* ── Capacity warning ── */
+    $('cap-warn').style.display = capWarn ? 'flex' : 'none';
+    if (capWarn && rd) $('cap-warn-text').textContent = 'เกินความจุห้อง (สูงสุด ' + rd.capacity + ' คน)';
+    $('f-count').style.borderColor = capWarn ? '#D68910' : '#E2E8F0';
+
+    /* ── Setup details ── */
+    $('setup-details-wrap').style.display = s.needsSetup ? '' : 'none';
+
+    /* ── Error banner ── */
+    var hasErr = s.submitted && (!s.selectedRoom || !s.selectedDate || !s.meetingTitle.trim() || conflict || wkend);
+    $('err-banner').style.display = hasErr ? 'flex' : 'none';
+    if (hasErr) {
+      $('err-banner-msg').textContent =
+        !s.selectedRoom       ? 'กรุณาเลือกห้องประชุม' :
+        !s.selectedDate       ? 'กรุณาเลือกวันที่จอง'  :
+        wkend                 ? 'ไม่สามารถจองวันเสาร์-อาทิตย์ได้' :
+        !s.meetingTitle.trim()? 'กรุณากรอกชื่อการประชุม' :
+                                'ช่วงเวลาที่เลือกมีการจองอยู่แล้ว กรุณาเลือกเวลาอื่น';
+    }
+
+    /* ════════ PREVIEW ════════ */
+    $('prev-header').style.background = rd ? '#F0F7FC' : '#F8FAFC';
+    $('prev-room-name').textContent   = rd ? rd.name : 'ยังไม่ได้เลือกห้องประชุม';
+    $('prev-location').textContent    = rd ? rd.location : '—';
+    $('prev-capacity-wrap').style.display = rd ? 'flex' : 'none';
+    if (rd) $('prev-capacity').textContent = rd.capacity;
+
+    $('prev-date').textContent  = s.selectedDate ? fmtDate(s.selectedDate) : '—';
+    $('prev-time').textContent  = (s.selectedRoom && s.selectedDate) ? pad(range.s) + ' – ' + pad(range.e) + ' น.' : '—';
+    $('prev-type').textContent  = BT_LABELS[s.bookingType] || '—';
+    $('prev-count').textContent = s.attendeeCount || '—';
+    $('prev-title').textContent = s.meetingTitle  || '—';
+
+    /* Availability badge */
+    var av;
+    if (!s.selectedRoom) {
+      av = { label: 'กรุณาเลือกห้องประชุม',       bg: '#F8FAFC', cl: '#A0AEC0', bdr: '#E2E8F0', chk: false, inf: true,  x: false };
+    } else if (!s.selectedDate) {
+      av = { label: 'กรุณาเลือกวันที่จอง',        bg: '#F8FAFC', cl: '#A0AEC0', bdr: '#E2E8F0', chk: false, inf: true,  x: false };
+    } else if (conflict) {
+      av = { label: 'ไม่ว่าง — มีการจองซ้อนทับ', bg: '#FEE2E2', cl: '#991B1B', bdr: '#EF4444', chk: false, inf: false, x: true  };
+    } else {
+      av = { label: 'ว่าง — สามารถจองได้',        bg: '#D1FAE5', cl: '#065F46', bdr: '#10B981', chk: true,  inf: false, x: false };
+    }
+    var avWrap = $('avail-wrap');
+    avWrap.style.background        = av.bg;
+    avWrap.style.borderBottomColor = av.bdr;
+    $('avail-label').textContent   = av.label;
+    $('avail-label').style.color   = av.cl;
+    $('avail-icon-check').style.display = av.chk ? 'inline' : 'none';
+    $('avail-icon-info').style.display  = av.inf ? 'inline' : 'none';
+    $('avail-icon-x').style.display     = av.x   ? 'inline' : 'none';
+
+    /* Timeline: booked segments */
+    var W   = 9; /* 8→17 = 9 hours */
+    var tbc = $('timeline-booked');
+    tbc.innerHTML = '';
+    booked.forEach(function (b) {
+      var seg       = document.createElement('div');
+      seg.className = 'tl-seg tl-seg-booked';
+      seg.style.left  = ((b.s - 8) / W * 100) + '%';
+      seg.style.width = ((b.e - b.s) / W * 100) + '%';
+      var lbl       = document.createElement('span');
+      lbl.className = 'tl-label tl-label-booked';
+      lbl.textContent = 'จองแล้ว';
+      seg.appendChild(lbl);
+      tbc.appendChild(seg);
+    });
+
+    /* Timeline: selected segment */
+    var selEl = $('timeline-sel');
+    var lbl   = selEl.querySelector('.tl-label');
+    if (s.selectedRoom && s.selectedDate) {
+      selEl.style.display = '';
+      selEl.style.left    = ((range.s - 8) / W * 100) + '%';
+      selEl.style.width   = ((range.e - range.s) / W * 100) + '%';
+      selEl.style.background      = conflict ? 'rgba(192,57,43,0.18)' : 'rgba(23,165,137,0.15)';
+      selEl.style.borderLeftColor = conflict ? '#C0392B' : '#17A589';
+      selEl.style.borderRightColor = conflict ? '#C0392B' : '#17A589';
+      if (lbl) lbl.style.color   = conflict ? '#991B1B' : '#065F46';
+    } else {
+      selEl.style.display = 'none';
+    }
+
+    /* Booked slots list */
+    var slotsWrap = $('booked-slots-wrap');
+    var slotsList = $('booked-slots-list');
+    if (booked.length > 0) {
+      slotsWrap.style.display = '';
+      slotsList.innerHTML = '';
+      booked.forEach(function (b) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;';
+        var dot = document.createElement('div');
+        dot.style.cssText = 'width:6px;height:6px;border-radius:50%;background:#EF4444;flex-shrink:0;';
+        var txt = document.createElement('span');
+        txt.style.cssText = 'font-size:12px;color:#991B1B;font-weight:500;';
+        txt.textContent   = pad(b.s) + ' – ' + pad(b.e);
+        row.appendChild(dot);
+        row.appendChild(txt);
+        slotsList.appendChild(row);
+      });
+    } else {
+      slotsWrap.style.display = 'none';
+    }
+
+    /* Conflict warning */
+    var cw = $('conflict-warn');
+    cw.style.display = conflict ? 'flex' : 'none';
+    if (conflict) {
+      $('conflict-msg').textContent = 'ช่วงเวลา ' + pad(range.s) + '–' + pad(range.e) + ' น. ซ้อนทับกับการจองที่มีอยู่ กรุณาเลือกเวลาอื่น';
+    }
+  }
+
+  /* ── Email tags ──────────────────────────────────────────── */
+  function renderEmailTags () {
+    var container = $('email-tags-container');
+    var input     = $('f-email-input');
+    Array.from(container.querySelectorAll('.email-tag')).forEach(function (el) {
+      container.removeChild(el);
+    });
+    state.attendeeEmails.forEach(function (email, i) {
+      var tag = document.createElement('div');
+      tag.className = 'email-tag';
+      var sp  = document.createElement('span');
+      sp.textContent = email;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'email-tag-remove';
+      btn.dataset.idx = i;
+      btn.setAttribute('aria-label', 'ลบ ' + email);
+      btn.textContent = '×';
+      tag.appendChild(sp);
+      tag.appendChild(btn);
+      container.insertBefore(tag, input);
+    });
+    input.placeholder = state.attendeeEmails.length === 0
+      ? 'พิมพ์อีเมล แล้วกด Enter เพื่อเพิ่ม...'
+      : 'เพิ่มอีเมล...';
+  }
+
+  $('email-tags-container').addEventListener('click', function (e) {
+    var btn = e.target.closest('.email-tag-remove');
+    if (btn) {
+      var idx = parseInt(btn.dataset.idx);
+      state.attendeeEmails.splice(idx, 1);
+      renderEmailTags();
+    }
+  });
+
+  $('f-email-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      var email = state.emailInput.trim().replace(/,$/, '');
+      if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !state.attendeeEmails.includes(email)) {
+        state.attendeeEmails.push(email);
+        state.emailInput = '';
+        $('f-email-input').value = '';
+        renderEmailTags();
+      }
+    }
+    if (e.key === 'Backspace' && !state.emailInput && state.attendeeEmails.length > 0) {
+      state.attendeeEmails.pop();
+      renderEmailTags();
+    }
+  });
+
+  $('f-email-input').addEventListener('input', function (e) {
+    state.emailInput = e.target.value;
+  });
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
+  var sidebar = $('sidebar');
+  var overlay = $('sidebar-overlay');
+
+  window.toggleSidebar = function () {
+    var collapsed = sidebar.classList.toggle('collapsed');
+    overlay.classList.toggle('show', !collapsed);
+  };
+
+  window.closeSidebar = function () {
+    sidebar.classList.add('collapsed');
+    overlay.classList.remove('show');
+  };
+
+  (function initSidebar () {
+    if (window.innerWidth < 1024) sidebar.classList.add('collapsed');
+    window.addEventListener('resize', function () {
+      if (window.innerWidth >= 1024) {
+        sidebar.classList.remove('collapsed');
+        overlay.classList.remove('show');
+      } else {
+        if (!sidebar.classList.contains('collapsed')) {
+          sidebar.classList.add('collapsed');
+          overlay.classList.remove('show');
+        }
+      }
+    });
+  }());
+
+  /* ── Notification / User dropdowns ──────────────────────── */
+  window.toggleNotif = function (e) {
+    e.stopPropagation();
+    var dd   = $('notif-dd');
+    var open = dd.style.display === 'block';
+    dd.style.display = open ? 'none' : 'block';
+    $('notif-btn').setAttribute('aria-expanded', String(!open));
+    if ($('user-dd')) $('user-dd').style.display = 'none';
+  };
+
+  window.toggleUser = function (e) {
+    e.stopPropagation();
+    var dd   = $('user-dd');
+    var open = dd.style.display === 'block';
+    dd.style.display = open ? 'none' : 'block';
+    $('user-btn').setAttribute('aria-expanded', String(!open));
+    if ($('notif-dd')) $('notif-dd').style.display = 'none';
+  };
+
+  document.addEventListener('mousedown', function (e) {
+    if (!e.target.closest('#notif-wrap')) {
+      var dd = $('notif-dd');
+      if (dd) dd.style.display = 'none';
+    }
+    if (!e.target.closest('#user-wrap')) {
+      var dd2 = $('user-dd');
+      if (dd2) dd2.style.display = 'none';
+    }
+  });
+
+  /* ── Form inputs ─────────────────────────────────────────── */
+  $('f-room').addEventListener('change', function (e) {
+    state.selectedRoom = e.target.value;
+    updateUI();
+  });
+
+  $('f-date').addEventListener('change', function (e) {
+    state.selectedDate = e.target.value;
+    updateUI();
+  });
+
+  ['hourly', '2hour', 'morning', 'afternoon'].forEach(function (type) {
+    $('bt-' + type).addEventListener('click', function () {
+      state.bookingType = type;
+      updateUI();
+    });
+  });
+
+  $('f-start').addEventListener('change', function (e) {
+    state.startHour = parseInt(e.target.value) || 9;
+    updateUI();
+  });
+
+  $('f-title').addEventListener('input', function (e) {
+    state.meetingTitle = e.target.value;
+    $('prev-title').textContent = state.meetingTitle || '—';
+    e.target.style.borderColor  = state.meetingTitle.trim() ? '#17A589' : '#E2E8F0';
+    if (state.submitted) updateUI();
+  });
+
+  $('f-purpose').addEventListener('input', function (e) { state.purpose = e.target.value; });
+
+  $('f-count').addEventListener('input', function (e) {
+    state.attendeeCount = e.target.value;
+    $('prev-count').textContent = state.attendeeCount || '—';
+    var rd = state.selectedRoom ? ROOMS[state.selectedRoom] : null;
+    var capWarn = !!(rd && state.attendeeCount && parseInt(state.attendeeCount) > rd.capacity);
+    $('cap-warn').style.display = capWarn ? 'flex' : 'none';
+    if (capWarn && rd) $('cap-warn-text').textContent = 'เกินความจุห้อง (สูงสุด ' + rd.capacity + ' คน)';
+    $('f-count').style.borderColor = capWarn ? '#D68910' : '#E2E8F0';
+  });
+
+  $('f-setup').addEventListener('change', function (e) {
+    state.needsSetup = e.target.checked;
+    $('setup-details-wrap').style.display = state.needsSetup ? '' : 'none';
+  });
+
+  $('f-setup-details').addEventListener('input', function (e) { state.setupDetails = e.target.value; });
+
+  $('f-equipment').addEventListener('change', function (e) { state.needsEquipment = e.target.checked; });
+
+  $('f-notes').addEventListener('input', function (e) { state.notes = e.target.value; });
+
+  /* ── Clear form ──────────────────────────────────────────── */
+  function clearForm () {
+    state.selectedRoom    = '';
+    state.selectedDate    = '';
+    state.bookingType     = 'hourly';
+    state.startHour       = 9;
+    state.meetingTitle    = '';
+    state.purpose         = '';
+    state.attendeeCount   = '';
+    state.emailInput      = '';
+    state.attendeeEmails  = [];
+    state.needsSetup      = false;
+    state.setupDetails    = '';
+    state.needsEquipment  = false;
+    state.notes           = '';
+    state.submitted       = false;
+    state.isSubmitting    = false;
+
+    $('f-room').value           = '';
+    $('f-date').value           = '';
+    $('f-title').value          = '';
+    $('f-purpose').value        = '';
+    $('f-count').value          = '';
+    $('f-setup').checked        = false;
+    $('f-setup-details').value  = '';
+    $('f-equipment').checked    = false;
+    $('f-notes').value          = '';
+    $('f-email-input').value    = '';
+    renderEmailTags();
+    updateUI();
+  }
+
+  document.querySelectorAll('.clear-btn').forEach(function (btn) {
+    btn.addEventListener('click', clearForm);
+  });
+
+  /* ── Submit ──────────────────────────────────────────────── */
+  $('booking-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    state.submitted = true;
+
+    var range    = getRange();
+    var wkend    = isWeekend(state.selectedDate);
+    var conflict = checkConflict(state.selectedRoom, state.selectedDate, range);
+
+    updateUI();
+
+    if (!state.selectedRoom || !state.selectedDate || !state.meetingTitle.trim() || conflict || wkend) {
+      /* Scroll to first error */
+      var firstErr = document.querySelector('.field-err[style*="flex"]');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    openModal();
+  });
+
+  /* ── Modal ───────────────────────────────────────────────── */
+  function openModal () {
+    var s     = state;
+    var range = getRange();
+    var rd    = s.selectedRoom ? ROOMS[s.selectedRoom] : null;
+    var svc   = [s.needsSetup && 'แม่บ้านจัดเตรียมห้อง', s.needsEquipment && 'อุปกรณ์เพิ่มเติม']
+                  .filter(Boolean).join(', ') || 'ไม่มี';
+
+    $('modal-room').textContent     = rd ? rd.name : '—';
+    $('modal-date').textContent     = fmtDate(s.selectedDate);
+    $('modal-time').textContent     = pad(range.s) + ' – ' + pad(range.e) + ' น.';
+    $('modal-type').textContent     = BT_LABELS[s.bookingType] || '—';
+    $('modal-title').textContent    = s.meetingTitle || '—';
+    $('modal-count').textContent    = s.attendeeCount || 'ไม่ระบุ';
+    $('modal-services').textContent = svc;
+
+    /* Reset confirm button */
+    var confirmBtn = $('modal-confirm-btn');
+    confirmBtn.disabled = false;
+    confirmBtn.style.opacity = '1';
+    confirmBtn.style.cursor  = 'pointer';
+    $('modal-spinner').style.display = 'none';
+    $('modal-btn-text').textContent  = 'ยืนยันการจอง';
+    state.isSubmitting = false;
+
+    $('modal-overlay').style.display = 'flex';
+  }
+
+  function closeModal () {
+    $('modal-overlay').style.display = 'none';
+  }
+
+  $('modal-close').addEventListener('click',      closeModal);
+  $('modal-cancel-btn').addEventListener('click', closeModal);
+
+  $('modal-overlay').addEventListener('click', function (e) {
+    if (e.target === $('modal-overlay')) closeModal();
+  });
+
+  $('modal-confirm-btn').addEventListener('click', function () {
+    if (state.isSubmitting) return;
+    state.isSubmitting = true;
+
+    var confirmBtn = $('modal-confirm-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.75';
+    confirmBtn.style.cursor  = 'not-allowed';
+    $('modal-spinner').style.display = '';
+    $('modal-btn-text').textContent  = 'กำลังส่งคำขอ...';
+
+    /*
+     * ส่งการจองจริงไปที่ POST /api/bookings
+     *
+     * body ที่ต้องส่ง (ตาม BookingSchema ใน server.js):
+     *   room       → MongoDB _id ของห้อง
+     *   title      → ชื่อการประชุม
+     *   purpose    → วัตถุประสงค์
+     *   date       → YYYY-MM-DD
+     *   startTime  → HH:mm
+     *   endTime    → HH:mm
+     *   attendees  → จำนวนผู้เข้าร่วม
+     */
+    (async function submitBooking() {
+      try {
+        var range = getRange();
+        var body  = {
+          room:      state.selectedRoom,
+          title:     state.meetingTitle,
+          purpose:   $('f-purpose') ? $('f-purpose').value.trim() : '',
+          date:      state.selectedDate,
+          startTime: pad(range.s) + ':00',
+          endTime:   pad(range.e) + ':00',
+          attendees: parseInt(state.attendeeCount, 10) || 1
+        };
+
+        await apiPost('/bookings', body);
+
+        /* สำเร็จ */
+        closeModal();
+        clearForm();
+        showToast('ส่งคำขอจองสำเร็จ! รอการอนุมัติจากผู้ดูแลระบบ');
+
+        /* ไปหน้า my-bookings หลัง 1.5 วิ */
+        setTimeout(function() {
+          window.location.href = 'my-bookings.html';
+        }, 1500);
+
+      } catch (err) {
+        /* Error จาก server เช่น conflict, ห้องไม่ว่าง */
+        state.isSubmitting = false;
+        var confirmBtn = $('modal-confirm-btn');
+        confirmBtn.disabled       = false;
+        confirmBtn.style.opacity  = '1';
+        confirmBtn.style.cursor   = 'pointer';
+        $('modal-spinner').style.display = 'none';
+        $('modal-btn-text').textContent  = 'ยืนยันการจอง';
+
+        closeModal();
+        showToast(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      }
+    }());
+  });
+
+  /* ── Keyboard: Escape closes modal ──────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('modal-overlay').style.display === 'flex') closeModal();
+  });
+
+  /* ── Init ────────────────────────────────────────────────── */
+  (function init () {
+    /* Set min date to today */
+    var today = new Date();
+    var yyyy  = today.getFullYear();
+    var mm    = String(today.getMonth() + 1).padStart(2, '0');
+    var dd    = String(today.getDate()).padStart(2, '0');
+    $('f-date').min = yyyy + '-' + mm + '-' + dd;
+
+    updateUI();
+    renderEmailTags();
+  }());
+
+}());
+</script>
+</body>
+</html>

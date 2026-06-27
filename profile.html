@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>โปรไฟล์ — ระบบจองห้องประชุม</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:      #1B4F72;
+      --primary-dark: #163d58;
+      --secondary:    #2E86AB;
+      --accent:       #17A589;
+      --bg:           #F0F4F8;
+      --surface:      #FFFFFF;
+      --surface-2:    #F8FAFC;
+      --text-dark:    #1A2332;
+      --text-mid:     #4A5568;
+      --text-light:   #718096;
+      --text-muted:   #A0AEC0;
+      --border:       #E2E8F0;
+      --danger:       #C0392B;
+      --radius:       12px;
+      --radius-sm:    8px;
+      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
+      --transition:   0.2s ease;
+    }
+    body { font-family:'Geist',sans-serif; background:var(--bg); color:var(--text-dark); min-height:100vh; display:flex; }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-thumb { background:#CBD5E0; border-radius:3px; }
+
+    /* ── SIDEBAR ────────────────────────────── */
+    .sidebar {
+      width:240px; min-height:100vh; background:var(--primary);
+      display:flex; flex-direction:column;
+      position:fixed; top:0; left:0; z-index:200;
+      transition:transform var(--transition);
+    }
+    .sidebar.collapsed { transform:translateX(-240px); }
+    .sidebar-brand { padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.12); }
+    .brand-row { display:flex; align-items:center; gap:10px; }
+    .brand-icon { width:36px; height:36px; background:rgba(255,255,255,.15); border-radius:10px; border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .brand-name { font-size:13px; font-weight:700; color:#fff; margin:0; line-height:1.2; }
+    .brand-sub  { font-size:10px; color:rgba(255,255,255,.55); margin:2px 0 0; }
+    .sidebar-nav { flex:1; padding:10px 0; overflow-y:auto; }
+    .nav-section-label { font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.35); padding:10px 20px 5px; }
+    .nav-item {
+      display:flex; align-items:center; gap:11px; padding:11px 20px;
+      color:rgba(255,255,255,.68); font-size:13.5px; font-weight:400;
+      text-decoration:none; transition:background var(--transition),color var(--transition); position:relative;
+    }
+    .nav-item:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .nav-item.active { background:rgba(255,255,255,.15); color:rgba(255,255,255,.96); font-weight:600; }
+    .nav-item.active::before { content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; border-radius:0 3px 3px 0; background:rgba(255,255,255,.88); }
+    .nav-item svg { flex-shrink:0; }
+    .sidebar-footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,.12); }
+    .user-foot { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .user-av { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+    .user-fn { font-size:13px; font-weight:600; color:#fff; }
+    .user-fr { font-size:11px; color:rgba(255,255,255,.55); margin-top:1px; }
+    .logout-btn { width:100%; display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--radius-sm); background:rgba(255,255,255,.08); border:none; cursor:pointer; font-family:inherit; font-size:13px; color:rgba(255,255,255,.7); transition:background var(--transition); }
+    .logout-btn:hover { background:rgba(255,255,255,.15); }
+
+    /* ── OVERLAY ─────────────────────────────── */
+    .sidebar-overlay { display:none; position:fixed; inset:0; z-index:190; background:rgba(0,0,0,.45); }
+    .sidebar-overlay.visible { display:block; }
+
+    /* ── MAIN ────────────────────────────────── */
+    .main { margin-left:240px; flex:1; display:flex; flex-direction:column; min-height:100vh; transition:margin-left var(--transition); }
+    .main.expanded { margin-left:0; }
+
+    /* ── NAVBAR ──────────────────────────────── */
+    .navbar { height:64px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; gap:14px; position:sticky; top:0; z-index:100; }
+    .hamburger { width:38px; height:38px; border:none; background:none; border-radius:var(--radius-sm); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-mid); transition:background var(--transition); }
+    .hamburger:hover { background:var(--bg); }
+    .breadcrumb { display:flex; align-items:center; gap:7px; }
+    .bc-parent  { font-size:13px; color:var(--text-muted); }
+    .bc-sep     { color:#D2D6DC; }
+    .bc-current { font-size:13px; font-weight:600; color:var(--text-dark); }
+    .navbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+    .icon-btn { width:38px; height:38px; border:none; background:none; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-mid); transition:background var(--transition); }
+    .icon-btn:hover { background:var(--bg); }
+    .navbar-avatar { width:34px; height:34px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+
+    /* ── CONTENT ─────────────────────────────── */
+    .content { flex:1; padding:28px; max-width:900px; }
+
+    /* ── PANEL ───────────────────────────────── */
+    .panel { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; overflow:hidden; }
+    .panel-body { padding:28px; }
+
+    /* ── AVATAR ──────────────────────────────── */
+    .avatar-wrap { position:relative; display:inline-block; }
+    .avatar-lg {
+      width:84px; height:84px; border-radius:50%;
+      background:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      display:flex; align-items:center; justify-content:center;
+      border:3px solid var(--border); flex-shrink:0;
+      font-size:30px; font-weight:700; color:#fff;
+    }
+    .avatar-edit-btn {
+      position:absolute; bottom:0; right:0;
+      width:26px; height:26px; border-radius:50%;
+      background:var(--secondary); border:2px solid var(--surface);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:background var(--transition);
+    }
+    .avatar-edit-btn:hover { background:var(--primary); }
+
+    /* ── PROFILE HEADER ──────────────────────── */
+    .profile-header {
+      display:flex; align-items:flex-start; gap:20px;
+      margin-bottom:28px; padding-bottom:24px;
+      border-bottom:1px solid var(--border);
+    }
+    .profile-meta { flex:1; }
+    .profile-name { font-size:20px; font-weight:700; color:var(--text-dark); margin-bottom:4px; }
+    .profile-email { font-size:13px; color:var(--text-light); margin-bottom:12px; }
+    .profile-tags { display:flex; gap:8px; flex-wrap:wrap; }
+    .profile-tag {
+      font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px;
+      border:1px solid;
+    }
+    .tag-dept { background:#EBF5FB; color:#1B4F72; border-color:#2E86AB; }
+    .tag-role { background:#E8F5E9; color:#1B5E20; border-color:#4CAF50; }
+
+    /* ── FORM FIELDS ─────────────────────────── */
+    .fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 32px; }
+    .field-group { margin-bottom:18px; }
+    .field-label { font-size:12px; font-weight:500; color:var(--text-light); display:block; margin-bottom:6px; }
+    .field-view {
+      padding:10px 12px; border:1px solid var(--border);
+      border-radius:var(--radius-sm); background:var(--surface-2);
+      color:var(--text-dark); font-size:13px; min-height:40px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .field-input {
+      width:100%; padding:10px 12px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); background:var(--surface);
+      color:var(--text-dark); font-size:13px; font-family:inherit;
+      outline:none; transition:border-color var(--transition), box-shadow var(--transition);
+      display:none;
+    }
+    .field-input:focus { border-color:var(--secondary); box-shadow:0 0 0 3px rgba(46,134,171,.12); }
+    .field-select {
+      width:100%; padding:10px 12px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); background:var(--surface);
+      color:var(--text-dark); font-size:13px; font-family:inherit;
+      outline:none; cursor:pointer; display:none;
+    }
+    .field-select:focus { border-color:var(--secondary); }
+
+    /* Edit mode shows inputs, hides views */
+    .edit-mode .field-view  { display:none; }
+    .edit-mode .field-input { display:block; }
+    .edit-mode .field-select{ display:block; }
+
+    /* ── BUTTONS ─────────────────────────────── */
+    .btn-primary {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:9px 18px; background:var(--primary); color:#fff;
+      border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:500;
+      cursor:pointer; font-family:inherit; transition:background var(--transition);
+    }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-outline {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:9px 18px; background:var(--surface); color:var(--primary);
+      border:1.5px solid var(--primary); border-radius:var(--radius-sm); font-size:13px; font-weight:500;
+      cursor:pointer; font-family:inherit; transition:all var(--transition);
+    }
+    .btn-outline:hover { background:var(--primary); color:#fff; }
+    .btn-ghost {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:9px 16px; background:none; color:var(--text-mid);
+      border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-weight:500;
+      cursor:pointer; font-family:inherit; transition:all var(--transition);
+    }
+    .btn-ghost:hover { background:var(--bg); border-color:var(--text-muted); }
+
+    /* ── ACTIONS ROW ─────────────────────────── */
+    .actions-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    /* ── STAT CARDS ──────────────────────────── */
+    .stat-mini-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+    .stat-mini {
+      background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:16px 18px; border-top:3px solid;
+    }
+    .sm-label { font-size:11px; font-weight:500; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+    .sm-value { font-size:22px; font-weight:700; }
+    .sm-sub   { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+    /* ── SECURITY ROW ────────────────────────── */
+    .security-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 0; border-bottom:1px solid #F5F7FA; gap:12px;
+    }
+    .security-row:last-child { border-bottom:none; padding-bottom:0; }
+    .sr-title { font-size:13px; font-weight:500; color:var(--text-dark); margin-bottom:3px; }
+    .sr-sub   { font-size:12px; color:var(--text-light); }
+
+    /* ── TOGGLE SWITCH ───────────────────────── */
+    .toggle-wrap { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
+    .toggle-wrap input { opacity:0; width:0; height:0; }
+    .toggle-slider {
+      position:absolute; cursor:pointer; inset:0;
+      background:#E2E8F0; border-radius:13px;
+      transition:background var(--transition);
+    }
+    .toggle-slider::before {
+      content:''; position:absolute;
+      width:20px; height:20px; border-radius:50%;
+      background:#fff; left:3px; top:3px;
+      box-shadow:0 1px 3px rgba(0,0,0,.15);
+      transition:transform var(--transition);
+    }
+    .toggle-wrap input:checked + .toggle-slider { background:var(--accent); }
+    .toggle-wrap input:checked + .toggle-slider::before { transform:translateX(20px); }
+
+    /* ── NOTIF ROWS ──────────────────────────── */
+    .notif-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0; border-bottom:1px solid #F5F7FA; gap:12px;
+    }
+    .notif-row:last-child { border-bottom:none; }
+    .nr-icon {
+      width:36px; height:36px; border-radius:var(--radius-sm);
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .nr-left { display:flex; align-items:center; gap:12px; }
+    .nr-title { font-size:13px; font-weight:500; color:var(--text-dark); margin-bottom:2px; }
+    .nr-sub   { font-size:12px; color:var(--text-light); }
+
+    /* ── PANEL HEADER ────────────────────────── */
+    .panel-header {
+      padding:16px 28px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .panel-title { font-size:15px; font-weight:600; color:var(--text-dark); }
+    .panel-sub   { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+    /* ── MODAL ───────────────────────────────── */
+    .modal-backdrop { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px; }
+    .modal-backdrop.open { display:flex; }
+    .modal { background:var(--surface); border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,.2); max-width:440px; width:100%; animation:modalIn .18s ease; }
+    @keyframes modalIn { from{opacity:0;transform:scale(.95) translateY(-6px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .modal-header { padding:20px 24px 0; display:flex; align-items:center; justify-content:space-between; }
+    .modal-title  { font-size:17px; font-weight:600; color:var(--text-dark); }
+    .modal-close  { width:28px; height:28px; border:none; background:none; cursor:pointer; border-radius:6px; color:var(--text-muted); display:flex; align-items:center; justify-content:center; transition:background var(--transition); }
+    .modal-close:hover { background:var(--bg); color:var(--text-dark); }
+    .modal-body   { padding:16px 24px 4px; }
+    .modal-footer { padding:12px 24px 20px; display:flex; justify-content:flex-end; gap:10px; }
+
+    /* ── FORM ────────────────────────────────── */
+    .form-group { margin-bottom:16px; }
+    .form-label { display:block; font-size:12px; font-weight:600; color:var(--text-mid); margin-bottom:6px; }
+    .form-label span { color:#EF4444; }
+    .form-input {
+      width:100%; padding:10px 12px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); font-size:14px; font-family:inherit;
+      background:var(--bg); color:var(--text-dark); outline:none;
+      transition:border-color var(--transition), box-shadow var(--transition);
+    }
+    .form-input:focus { border-color:var(--secondary); background:var(--surface); box-shadow:0 0 0 3px rgba(46,134,171,.12); }
+    .input-wrap { position:relative; }
+    .input-wrap .form-input { padding-right:40px; }
+    .eye-btn {
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--text-muted); padding:2px;
+      transition:color var(--transition);
+    }
+    .eye-btn:hover { color:var(--text-dark); }
+    .field-error { font-size:11px; color:#EF4444; margin-top:4px; display:none; }
+    .field-error.show { display:block; }
+
+    /* Strength bar */
+    .strength-wrap { margin-top:8px; }
+    .strength-bars { display:flex; gap:4px; margin-bottom:4px; }
+    .strength-bar  { flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .3s; }
+    .strength-label{ font-size:11px; color:var(--text-muted); }
+
+    /* ── TOAST ───────────────────────────────── */
+    .toast-container { position:fixed; bottom:28px; right:28px; z-index:999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+    .toast { display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:var(--radius-sm); font-size:14px; font-weight:500; max-width:320px; box-shadow:0 4px 16px rgba(0,0,0,.15); pointer-events:auto; animation:toastIn .25s ease; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .toast.success { background:#065F46; color:#fff; }
+    .toast.error   { background:#991B1B; color:#fff; }
+    .toast.info    { background:#1B4F72; color:#fff; }
+    .toast svg { flex-shrink:0; }
+
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media (max-width:1023px) {
+      .sidebar { transform:translateX(-240px); }
+      .sidebar.open { transform:translateX(0); }
+      .main { margin-left:0; }
+      .fields-grid { grid-template-columns:1fr; }
+      .stat-mini-row { grid-template-columns:repeat(3,1fr); }
+      .content { padding:20px 16px 32px; }
+    }
+    @media (min-width:768px) and (max-width:1023px) {
+      .content { padding:20px 20px 32px; }
+      .stat-mini-row { grid-template-columns:repeat(3,1fr); }
+    }
+    @media (max-width:767px) {
+      .profile-header { flex-direction:column; align-items:center; text-align:center; }
+      .profile-tags { justify-content:center; }
+      .stat-mini-row { grid-template-columns:1fr 1fr; }
+      .actions-row { flex-direction:column; align-items:flex-start; }
+      .fields-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ══════════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-row">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="8" width="16" height="11" rx="1" fill="rgba(255,255,255,.1)"
+                stroke="rgba(255,255,255,.9)" stroke-width="1.4"/>
+          <path d="M1 8L10 2l9 6" stroke="rgba(255,255,255,.9)" stroke-width="1.4" stroke-linejoin="round"/>
+          <rect x="8" y="13" width="4" height="6" rx=".5" fill="rgba(255,255,255,.8)"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand-name">ระบบจองห้องประชุม</p>
+        <p class="brand-sub">สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">เมนูหลัก</div>
+
+    <a class="nav-item" href="dashboard.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="1" y="7" width="4" height="9" rx="1" stroke="white" stroke-width="1.5"/>
+        <rect x="7" y="4" width="4" height="12" rx="1" stroke="white" stroke-width="1.5"/>
+        <rect x="13" y="9" width="4" height="7" rx="1" stroke="white" stroke-width="1.5"/>
+      </svg>ภาพรวม
+    </a>
+    <a class="nav-item" href="booking.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="white" stroke-width="1.5"/>
+        <path d="M1.5 7.5h15M6 1.5v3M12 1.5v3M9 10.5v3M7.5 12h3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>จองห้องประชุม
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="1.5" y="3" width="15" height="13.5" rx="1.5" stroke="white" stroke-width="1.5"/>
+        <path d="M1.5 7.5h15M6 1.5v3M12 1.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>ปฏิทินการจอง
+    </a>
+    <a class="nav-item" href="my-bookings.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="white" stroke-width="1.5"/>
+        <path d="M6 6.5h6M6 9.5h6M6 12.5h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>การจองของฉัน
+    </a>
+
+    <div class="nav-section-label" style="margin-top:8px">ระบบ</div>
+
+    <a class="nav-item" href="reports.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="1" width="14" height="15" rx="1" stroke="white" stroke-width="1.5"/>
+        <path d="M5 9h2M5 12h2M11 6h2M11 9h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M8 13.5v-7M14 13.5v-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>รายงาน
+    </a>
+    <a class="nav-item active" href="profile.html" aria-current="page">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="6.5" r="3.5" stroke="white" stroke-width="1.5"/>
+        <path d="M2 16.5c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>โปรไฟล์
+    </a>
+    <a class="nav-item" href="admin.html">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="2.5" stroke="white" stroke-width="1.5"/>
+        <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.41 1.41M13.37 13.37l1.41 1.41M3.22 14.78l1.41-1.41M13.37 4.63l1.41-1.41" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>ผู้ดูแลระบบ
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-foot">
+      <div class="user-av">ส</div>
+      <div>
+        <div class="user-fn">สมชาย ใจดี</div>
+        <div class="user-fr">เจ้าหน้าที่ทั่วไป</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="DLD.logout()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M10 11l3-3-3-3M13 8H6" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ออกจากระบบ
+    </button>
+  </div>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ═══ MAIN ══════════════════════════════════════ -->
+<div class="main" id="main">
+
+  <header class="navbar">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Toggle sidebar">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 6h14M3 10h14M3 14h14" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="breadcrumb">
+      <span class="bc-parent">ระบบจองห้องประชุม</span>
+      <span class="bc-sep">/</span>
+      <span class="bc-current">โปรไฟล์</span>
+    </div>
+    <div class="navbar-right">
+      <button class="icon-btn" aria-label="การแจ้งเตือน">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+          <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3.2L2 13.5h14l-1.5-2.8V7.5A5.5 5.5 0 009 2z"
+                stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M7 14.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+      <div class="navbar-avatar">ส</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Page title -->
+    <div style="margin-bottom:24px">
+      <h1 style="font-size:22px;font-weight:700;color:var(--text-dark);margin-bottom:3px">โปรไฟล์ของฉัน</h1>
+      <p style="font-size:13px;color:var(--text-light)">จัดการข้อมูลส่วนตัวและการตั้งค่าบัญชี</p>
+    </div>
+
+    <!-- ── Activity Stats ───────────────────── -->
+    <div class="stat-mini-row">
+      <div class="stat-mini" style="border-top-color:var(--primary)">
+        <div class="sm-label">จองทั้งหมด</div>
+        <div class="sm-value" style="color:var(--primary)" id="pStatTotal">—</div>
+        <div class="sm-sub">ตลอดการใช้งาน</div>
+      </div>
+      <div class="stat-mini" style="border-top-color:#10B981">
+        <div class="sm-label">อนุมัติแล้ว</div>
+        <div class="sm-value" style="color:#17A589" id="pStatApproved">—</div>
+        <div class="sm-sub" id="pStatApprovedSub">อัตราสำเร็จ</div>
+      </div>
+      <div class="stat-mini" style="border-top-color:#F59E0B">
+        <div class="sm-label">รอดำเนินการ</div>
+        <div class="sm-value" style="color:#D68910" id="pStatPending">—</div>
+        <div class="sm-sub">คำขอที่รอการอนุมัติ</div>
+      </div>
+    </div>
+
+    <!-- ── Profile Card ─────────────────────── -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">ข้อมูลส่วนตัว</div>
+          <div class="panel-sub">แก้ไขชื่อ อีเมล และข้อมูลการติดต่อ</div>
+        </div>
+        <div class="actions-row" id="profileActions">
+          <button class="btn-outline" id="editProfileBtn" onclick="toggleEdit(true)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            แก้ไขข้อมูล
+          </button>
+          <button class="btn-primary" id="saveProfileBtn" style="display:none" onclick="saveProfile()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            บันทึก
+          </button>
+          <button class="btn-ghost" id="cancelProfileBtn" style="display:none" onclick="toggleEdit(false)">ยกเลิก</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <!-- Avatar row -->
+        <div class="profile-header">
+          <div class="avatar-wrap">
+            <div class="avatar-lg" id="avatarCircle">ส</div>
+            <div class="avatar-edit-btn" title="เปลี่ยนรูปโปรไฟล์" onclick="showToast('ฟีเจอร์อัปโหลดรูปจะพัฒนาในเวอร์ชันถัดไป','info')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="profile-meta">
+            <div class="profile-name" id="profileDisplayName">นายสมชาย ใจดี</div>
+            <div class="profile-email" id="profileDisplayEmail">somchai@dld.go.th</div>
+            <div class="profile-tags">
+              <span class="profile-tag tag-dept" id="profileDisplayDept">กองวิจัยและพัฒนา</span>
+              <span class="profile-tag tag-role">เจ้าหน้าที่ทั่วไป</span>
+              <span style="font-size:11px;display:flex;align-items:center;gap:4px;color:#17A589;font-weight:500">
+                <span style="width:7px;height:7px;border-radius:50%;background:#10B981;display:inline-block"></span>
+                ใช้งานอยู่
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fields -->
+        <div class="fields-grid" id="profileForm">
+          <!-- Left -->
+          <div>
+            <div class="field-group">
+              <label class="field-label">คำนำหน้าชื่อ</label>
+              <div class="field-view">นาย</div>
+              <select class="field-select" id="fPrefix">
+                <option selected>นาย</option><option>นาง</option><option>นางสาว</option><option>ดร.</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">ชื่อ</label>
+              <div class="field-view">สมชาย</div>
+              <input class="field-input" id="fFirstName" value="สมชาย" placeholder="ชื่อ" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">นามสกุล</label>
+              <div class="field-view">ใจดี</div>
+              <input class="field-input" id="fLastName" value="ใจดี" placeholder="นามสกุล" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">อีเมล</label>
+              <div class="field-view">somchai@dld.go.th</div>
+              <input class="field-input" id="fEmail" value="somchai@dld.go.th" type="email" placeholder="อีเมล" />
+            </div>
+          </div>
+
+          <!-- Right -->
+          <div>
+            <div class="field-group">
+              <label class="field-label">หมายเลขโทรศัพท์</label>
+              <div class="field-view">02-123-4567</div>
+              <input class="field-input" id="fPhone" value="02-123-4567" placeholder="เบอร์โทรศัพท์" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">แผนก / กอง</label>
+              <div class="field-view">กองวิจัยและพัฒนา</div>
+              <input class="field-input" id="fDept" value="กองวิจัยและพัฒนา" placeholder="แผนก / กอง" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">ตำแหน่ง</label>
+              <div class="field-view">นักวิจัย</div>
+              <input class="field-input" id="fPosition" value="นักวิจัย" placeholder="ตำแหน่ง" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">วันที่สมัคร</label>
+              <div class="field-view">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                15 มกราคม 2567
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">เข้าใช้งานล่าสุด</label>
+              <div class="field-view">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                27 มิ.ย. 2569 เวลา 14:30 น.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Security ──────────────────────────── -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">ความปลอดภัย</div>
+          <div class="panel-sub">จัดการรหัสผ่านและการยืนยันตัวตน</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="security-row">
+          <div>
+            <div class="sr-title">รหัสผ่าน</div>
+            <div class="sr-sub">อัปเดตล่าสุด 30 วันที่แล้ว</div>
+          </div>
+          <button class="btn-outline" onclick="openModal('pwdModal')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            เปลี่ยนรหัสผ่าน
+          </button>
+        </div>
+
+        <div class="security-row">
+          <div>
+            <div class="sr-title">การเข้าสู่ระบบสองขั้นตอน (2FA)</div>
+            <div class="sr-sub" id="twoFASub">ปิดอยู่ — เปิดใช้งานเพื่อเพิ่มความปลอดภัย</div>
+          </div>
+          <label class="toggle-wrap" title="เปิด/ปิด 2FA">
+            <input type="checkbox" id="toggle2FA" onchange="toggle2FA(this)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="security-row">
+          <div>
+            <div class="sr-title">เซสชันที่ใช้งานอยู่</div>
+            <div class="sr-sub">ออกจากระบบในอุปกรณ์อื่นทั้งหมด</div>
+          </div>
+          <button class="btn-ghost" onclick="showToast('ออกจากระบบอุปกรณ์อื่นแล้ว','success')" style="font-size:12px;padding:7px 14px;color:var(--danger);border-color:#FCA5A5">
+            ออกจากทุกอุปกรณ์
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Notifications ─────────────────────── -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">การแจ้งเตือน</div>
+          <div class="panel-sub">เลือกประเภทการแจ้งเตือนที่ต้องการรับ</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="notif-row">
+          <div class="nr-left">
+            <div class="nr-icon" style="background:#EBF5FB">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E86AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <div>
+              <div class="nr-title">การจองได้รับการอนุมัติ</div>
+              <div class="nr-sub">รับแจ้งเตือนเมื่อการจองได้รับอนุมัติ</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" checked onchange="saveNotifPref('approved', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="notif-row">
+          <div class="nr-left">
+            <div class="nr-icon" style="background:#FEE2E2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            </div>
+            <div>
+              <div class="nr-title">การจองถูกปฏิเสธ</div>
+              <div class="nr-sub">รับแจ้งเตือนพร้อมเหตุผลที่ปฏิเสธ</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" checked onchange="saveNotifPref('rejected', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="notif-row">
+          <div class="nr-left">
+            <div class="nr-icon" style="background:#FEF3C7">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D68910" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div>
+              <div class="nr-title">การแจ้งเตือนก่อนการประชุม</div>
+              <div class="nr-sub">รับแจ้งเตือน 30 นาทีก่อนเริ่มประชุม</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" checked onchange="saveNotifPref('reminder', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="notif-row">
+          <div class="nr-left">
+            <div class="nr-icon" style="background:#F3F4F6">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#718096" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+              </svg>
+            </div>
+            <div>
+              <div class="nr-title">อัปเดตระบบ</div>
+              <div class="nr-sub">ข่าวสารและการอัปเดตฟีเจอร์ใหม่</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" onchange="saveNotifPref('system', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="panel" style="border:1px solid #FEE2E2">
+      <div class="panel-header" style="background:#FFF5F5;border-bottom-color:#FEE2E2">
+        <div>
+          <div class="panel-title" style="color:#991B1B">โซนอันตราย</div>
+          <div class="panel-sub" style="color:#C0392B">การกระทำเหล่านี้ไม่สามารถย้อนกลับได้</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div class="sr-title">ลบบัญชี</div>
+            <div class="sr-sub">ลบบัญชีและข้อมูลทั้งหมดออกจากระบบถาวร</div>
+          </div>
+          <button style="padding:9px 18px;border:1.5px solid #EF4444;color:#C0392B;background:#FFF5F5;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all var(--transition)"
+                  onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='#FFF5F5'"
+                  onclick="showToast('กรุณาติดต่อผู้ดูแลระบบเพื่อลบบัญชี','info')">
+            ลบบัญชี
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══ MODAL: CHANGE PASSWORD ══════════════════ -->
+<div class="modal-backdrop" id="pwdModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">เปลี่ยนรหัสผ่าน</h2>
+      <button class="modal-close" onclick="closeModal('pwdModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label class="form-label" for="pwdCurrent">รหัสผ่านปัจจุบัน <span>*</span></label>
+        <div class="input-wrap">
+          <input class="form-input" id="pwdCurrent" type="password" placeholder="รหัสผ่านปัจจุบัน" autocomplete="current-password" />
+          <button class="eye-btn" type="button" onclick="toggleEye('pwdCurrent',this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="field-error" id="errCurrent">กรุณากรอกรหัสผ่านปัจจุบัน</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pwdNew">รหัสผ่านใหม่ <span>*</span></label>
+        <div class="input-wrap">
+          <input class="form-input" id="pwdNew" type="password" placeholder="รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
+                 autocomplete="new-password" oninput="updateStrength(this.value)" />
+          <button class="eye-btn" type="button" onclick="toggleEye('pwdNew',this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="strength-wrap">
+          <div class="strength-bars">
+            <div class="strength-bar" id="sb1"></div>
+            <div class="strength-bar" id="sb2"></div>
+            <div class="strength-bar" id="sb3"></div>
+            <div class="strength-bar" id="sb4"></div>
+          </div>
+          <div class="strength-label" id="strengthLabel">ความแข็งแรงรหัสผ่าน</div>
+        </div>
+        <div class="field-error" id="errNew">รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pwdConfirm">ยืนยันรหัสผ่านใหม่ <span>*</span></label>
+        <div class="input-wrap">
+          <input class="form-input" id="pwdConfirm" type="password" placeholder="ยืนยันรหัสผ่านใหม่" autocomplete="new-password" />
+          <button class="eye-btn" type="button" onclick="toggleEye('pwdConfirm',this)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="field-error" id="errConfirm">รหัสผ่านไม่ตรงกัน</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('pwdModal')">ยกเลิก</button>
+      <button class="btn-primary" onclick="submitPasswordChange()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        บันทึกรหัสผ่าน
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  'use strict';
+  var _me = checkAuth();
+  populateUserUI();
+
+  /* ── STATE ─────────────────────────────────── */
+  var isEditing = false;
+
+  /*
+   * USER — เริ่มต้นจาก localStorage (ที่ได้มาตอน login)
+   * แล้ว loadProfile() จะเรียก GET /api/profile เพื่ออัปเดตข้อมูลที่ครบขึ้น
+   */
+  var _stored = DLD.getCurrentUser() || {};
+  var USER = {
+    prefix:    _stored.prefix     || 'นาย',
+    firstName: _stored.firstName  || (_stored.fullName ? _stored.fullName.replace(/^(นาย|นาง|นางสาว|ดร\.)\s*/,'').split(' ')[0] : 'ผู้ใช้'),
+    lastName:  _stored.lastName   || (_stored.fullName ? _stored.fullName.split(' ').slice(-1)[0] : ''),
+    email:     _stored.email      || '',
+    phone:     _stored.phone      || '',
+    dept:      _stored.department || '',
+    position:  _stored.position   || ''
+  };
+
+  /* ── HELPERS ───────────────────────────────── */
+  function $$(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── TOAST ─────────────────────────────────── */
+  window.showToast = function(msg, type) {
+    type = type || 'info';
+    var icons = {
+      success: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      error:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+      info:    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = icons[type] + '<span>' + esc(msg) + '</span>';
+    $$('toastContainer').appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3500);
+  };
+
+  /* ── MODAL ─────────────────────────────────── */
+  window.openModal = function(id) { $$(id).classList.add('open'); };
+  window.closeModal = function(id) {
+    $$(id).classList.remove('open');
+    // Reset password form
+    if (id === 'pwdModal') {
+      ['pwdCurrent','pwdNew','pwdConfirm'].forEach(function(f){ $$(f).value = ''; });
+      ['errCurrent','errNew','errConfirm'].forEach(function(f){ $$(f).classList.remove('show'); });
+      updateStrength('');
+    }
+  };
+
+  /* ── PROFILE EDIT ──────────────────────────── */
+  window.toggleEdit = function(on) {
+    isEditing = on;
+    var form = $$('profileForm');
+    form.classList.toggle('edit-mode', on);
+    $$('editProfileBtn').style.display  = on ? 'none' : '';
+    $$('saveProfileBtn').style.display  = on ? '' : 'none';
+    $$('cancelProfileBtn').style.display= on ? '' : 'none';
+    if (!on) {
+      // Restore inputs to saved values
+      $$('fPrefix').value    = USER.prefix;
+      $$('fFirstName').value = USER.firstName;
+      $$('fLastName').value  = USER.lastName;
+      $$('fEmail').value     = USER.email;
+      $$('fPhone').value     = USER.phone;
+      $$('fDept').value      = USER.dept;
+      $$('fPosition').value  = USER.position;
+    }
+  };
+
+  /* ── LOAD PROFILE FROM API ─────────────────── */
+  /*
+   * เรียก GET /api/profile → อัปเดต USER object, stat cards,
+   * form fields, 2FA toggle, notification toggles
+   */
+  async function loadProfile() {
+    try {
+      var data = await apiGet('/profile');
+
+      // อัปเดต USER object จากข้อมูลจริง
+      USER.prefix    = data.prefix     || USER.prefix;
+      USER.firstName = data.firstName  || USER.firstName;
+      USER.lastName  = data.lastName   || USER.lastName;
+      USER.email     = data.email      || USER.email;
+      USER.phone     = data.phone      || '';
+      USER.dept      = data.department || '';
+      USER.position  = data.position   || '';
+
+      // อัปเดตชื่อ/อีเมล/avatar ในหน้า
+      var fullName = USER.prefix + USER.firstName + ' ' + USER.lastName;
+      var dn = $$('profileDisplayName');
+      var de = $$('profileDisplayEmail');
+      var dd = $$('profileDisplayDept');
+      var av = $$('avatarCircle');
+      if (dn) dn.textContent = fullName;
+      if (de) de.textContent = USER.email;
+      if (dd) dd.textContent = USER.dept || 'ไม่ระบุแผนก';
+      if (av) av.textContent = USER.firstName.charAt(0) || 'ผ';
+      document.querySelectorAll('.user-av, .navbar-avatar').forEach(function(el){
+        el.textContent = USER.firstName.charAt(0) || 'ผ';
+      });
+      var uf = document.querySelector('.user-fn');
+      if (uf) uf.textContent = fullName;
+
+      // อัปเดต stat cards
+      var stats = data.stats || {};
+      var total    = stats.totalBookings    || 0;
+      var approved = stats.approvedBookings || 0;
+      var pending  = stats.pendingBookings  || 0;
+      var approvalRate = total ? Math.round(approved/total*100) : 0;
+      var ps = $$('pStatTotal');    if(ps) ps.textContent = total;
+      var pa = $$('pStatApproved'); if(pa) pa.textContent = approved;
+      var pp = $$('pStatPending');  if(pp) pp.textContent = pending;
+      var sub = $$('pStatApprovedSub');
+      if(sub) sub.textContent = approvalRate + '% อัตราสำเร็จ';
+
+      // อัปเดต view fields
+      var form = $$('profileForm');
+      if (form) {
+        var views = form.querySelectorAll('.field-view');
+        var vals  = [USER.prefix, USER.firstName, USER.lastName, USER.email,
+                     USER.phone, USER.dept, USER.position];
+        views.forEach(function(v, i) { if (vals[i] !== undefined) v.textContent = vals[i] || '—'; });
+      }
+      var flds = ['fPrefix','fFirstName','fLastName','fEmail','fPhone','fDept','fPosition'];
+      var fval = [USER.prefix, USER.firstName, USER.lastName, USER.email,
+                  USER.phone, USER.dept, USER.position];
+      flds.forEach(function(id, i) {
+        var el = $$(id);
+        if (el) el.value = fval[i] || '';
+      });
+
+      // 2FA toggle
+      var tfaCb = $$('toggle2FA');
+      if (tfaCb) {
+        tfaCb.checked = !!data.twoFA;
+        var sub2 = $$('twoFASub');
+        if (sub2) sub2.textContent = data.twoFA
+          ? 'เปิดอยู่ — บัญชีของคุณได้รับการป้องกันเพิ่มเติม'
+          : 'ปิดอยู่ — เปิดใช้งานเพื่อเพิ่มความปลอดภัย';
+      }
+
+      // Notification toggles (keys: approved, rejected, reminder, system)
+      var prefs = data.notifPrefs || {};
+      var notifMap = { approved: 0, rejected: 1, reminder: 2, system: 3 };
+      var allToggles = document.querySelectorAll('.toggle-wrap input[type="checkbox"]');
+      // allToggles[0] = 2FA, allToggles[1-4] = notif
+      ['approved','rejected','reminder','system'].forEach(function(key, i){
+        var cb = allToggles[i+1];
+        if (cb && prefs[key] !== undefined) cb.checked = !!prefs[key];
+      });
+
+    } catch(e) {
+      console.error('loadProfile error:', e);
+      // ยังโชว์ข้อมูลจาก localStorage ได้ ไม่แสดง error toast ให้ UX ดีขึ้น
+    }
+  }
+
+  window.saveProfile = async function() {
+    var first = $$('fFirstName').value.trim();
+    var last  = $$('fLastName').value.trim();
+    var email = $$('fEmail').value.trim();
+    if (!first || !last || !email) {
+      showToast('กรุณากรอกชื่อ นามสกุล และอีเมล', 'error');
+      return;
+    }
+
+    try {
+      // เรียก PUT /api/profile
+      var res = await apiPut('/profile', {
+        prefix:     $$('fPrefix').value,
+        firstName:  first,
+        lastName:   last,
+        phone:      $$('fPhone').value.trim(),
+        department: $$('fDept').value.trim(),
+        position:   $$('fPosition').value.trim()
+      });
+      if (!res.ok) {
+        var err = await res.json();
+        showToast(err.error || 'บันทึกไม่สำเร็จ', 'error');
+        return;
+      }
+
+      // อัปเดต USER object หลัง save สำเร็จ
+      USER.prefix    = $$('fPrefix').value;
+      USER.firstName = first;
+      USER.lastName  = last;
+      USER.email     = email;
+      USER.phone     = $$('fPhone').value.trim();
+      USER.dept      = $$('fDept').value.trim();
+      USER.position  = $$('fPosition').value.trim();
+
+      // อัปเดต localStorage (ให้ navbar sidebar อื่นๆ เห็นชื่อใหม่)
+      var stored = DLD.getCurrentUser() || {};
+      stored.firstName  = USER.firstName;
+      stored.lastName   = USER.lastName;
+      stored.prefix     = USER.prefix;
+      stored.phone      = USER.phone;
+      stored.department = USER.dept;
+      stored.position   = USER.position;
+      DLD.setCurrentUser(stored);
+
+      // อัปเดต display
+      var fullName = USER.prefix + first + ' ' + last;
+      $$('profileDisplayName').textContent = fullName;
+      $$('profileDisplayEmail').textContent = email;
+      $$('profileDisplayDept').textContent = USER.dept || 'ไม่ระบุ';
+      document.querySelectorAll('.user-av, .navbar-avatar').forEach(function(el){
+        el.textContent = first.charAt(0) || 'ส';
+      });
+      $$('avatarCircle').textContent = first.charAt(0) || 'ส';
+
+      // อัปเดต view fields
+      var views = $$('profileForm').querySelectorAll('.field-view');
+      var vals = [USER.prefix, USER.firstName, USER.lastName, USER.email,
+                  USER.phone, USER.dept, USER.position];
+      views.forEach(function(v, i){ if(vals[i] !== undefined) v.textContent = vals[i]; });
+
+      toggleEdit(false);
+      showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+
+    } catch(e) {
+      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+    }
+  };
+
+  /* ── PASSWORD CHANGE ───────────────────────── */
+  window.toggleEye = function(id, btn) {
+    var inp = $$(id);
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = show
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  };
+
+  window.updateStrength = function(val) {
+    var strength = 0;
+    if (val.length >= 8) strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+    if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+    var colors   = ['#EF4444','#F59E0B','#10B981','#059669'];
+    var labels   = ['อ่อน','ปานกลาง','ดี','ดีมาก'];
+    var barCount = val.length === 0 ? 0 : strength;
+
+    for (var i = 1; i <= 4; i++) {
+      var bar = $$('sb'+i);
+      if (!bar) continue;
+      bar.style.background = i <= barCount ? colors[strength-1] : 'var(--border)';
+    }
+
+    var lbl = $$('strengthLabel');
+    if (lbl) lbl.textContent = val.length === 0 ? 'ความแข็งแรงรหัสผ่าน' :
+      '● ' + labels[Math.min(strength-1,3)];
+    if (lbl && val.length > 0) lbl.style.color = colors[Math.min(strength-1,3)];
+    else if (lbl) lbl.style.color = 'var(--text-muted)';
+  };
+
+  window.submitPasswordChange = async function() {
+    var cur  = $$('pwdCurrent').value.trim();
+    var nw   = $$('pwdNew').value;
+    var conf = $$('pwdConfirm').value;
+    var ok = true;
+
+    function err(id, show) {
+      $$(id).classList.toggle('show', show);
+      if (show) ok = false;
+    }
+
+    err('errCurrent', !cur);
+    err('errNew',     nw.length < 8);
+    err('errConfirm', nw !== conf || !conf);
+
+    if (!ok) return;
+
+    try {
+      // เรียก PUT /api/profile/password
+      var res = await apiPut('/profile/password', {
+        currentPassword: cur,
+        newPassword:     nw
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        // แสดง error เฉพาะจุดที่ผิด
+        if (data.error && data.error.includes('ปัจจุบัน')) {
+          $$('errCurrent').classList.add('show');
+        } else {
+          showToast(data.error || 'เปลี่ยนรหัสผ่านไม่สำเร็จ', 'error');
+        }
+        return;
+      }
+      closeModal('pwdModal');
+      showToast('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', 'success');
+    } catch(e) {
+      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+    }
+  };
+
+  /* ── 2FA TOGGLE ────────────────────────────── */
+  // เรียก PUT /api/profile/2fa { enabled: true/false }
+  window.toggle2FA = async function(cb) {
+    $$('twoFASub').textContent = cb.checked
+      ? 'เปิดอยู่ — บัญชีของคุณได้รับการป้องกันเพิ่มเติม'
+      : 'ปิดอยู่ — เปิดใช้งานเพื่อเพิ่มความปลอดภัย';
+    try {
+      var res = await apiPut('/profile/2fa', { enabled: cb.checked });
+      var data = await res.json();
+      if (!res.ok) { showToast(data.error || 'เกิดข้อผิดพลาด', 'error'); cb.checked = !cb.checked; return; }
+      showToast(data.message || (cb.checked ? 'เปิดใช้งาน 2FA แล้ว' : 'ปิดใช้งาน 2FA แล้ว'), cb.checked ? 'success' : 'info');
+    } catch(e) {
+      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      cb.checked = !cb.checked;
+    }
+  };
+
+  /* ── NOTIFICATION PREFS ────────────────────── */
+  // เรียก PUT /api/profile/notifications { approved/rejected/reminder/system: bool }
+  window.saveNotifPref = async function(key, val) {
+    try {
+      var body = {};
+      body[key] = val;
+      var res = await apiPut('/profile/notifications', body);
+      var data = await res.json();
+      if (!res.ok) { showToast(data.error || 'เกิดข้อผิดพลาด', 'error'); return; }
+      showToast((val ? 'เปิด' : 'ปิด') + 'การแจ้งเตือนแล้ว', 'info');
+    } catch(e) {
+      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+    }
+  };
+
+  /* ── SIDEBAR ───────────────────────────────── */
+  function initSidebar() {
+    var sidebar = $$('sidebar'), overlay = $$('sidebarOverlay');
+    var hamburger = $$('hamburgerBtn'), main = $$('main');
+    hamburger.addEventListener('click', function(){
+      if (window.innerWidth >= 1024) { sidebar.classList.toggle('collapsed'); main.classList.toggle('expanded'); }
+      else { var o = sidebar.classList.toggle('open'); overlay.classList.toggle('visible', o); }
+    });
+    overlay.addEventListener('click', function(){
+      sidebar.classList.remove('open'); overlay.classList.remove('visible');
+    });
+    window.addEventListener('resize', function(){
+      if (window.innerWidth >= 1024) { overlay.classList.remove('visible'); sidebar.classList.remove('open'); }
+    });
+  }
+
+  /* ── INIT ──────────────────────────────────── */
+  function init() {
+    initSidebar();
+
+    /*
+     * แสดงข้อมูลจาก localStorage ก่อน (เร็ว ไม่ต้องรอ API)
+     * แล้ว loadProfile() จะ override ด้วยข้อมูลล่าสุดจาก server
+     */
+    var fullName = USER.prefix + USER.firstName + ' ' + USER.lastName;
+    var dn = $$('profileDisplayName');
+    var de = $$('profileDisplayEmail');
+    var dd = $$('profileDisplayDept');
+    var av = $$('avatarCircle');
+    if (dn) dn.textContent = fullName;
+    if (de) de.textContent = USER.email;
+    if (dd) dd.textContent = USER.dept || 'ไม่ระบุแผนก';
+    if (av) av.textContent = USER.firstName.charAt(0) || 'ผ';
+    var form = $$('profileForm');
+    if (form) {
+      var views = form.querySelectorAll('.field-view');
+      var vals  = [USER.prefix, USER.firstName, USER.lastName, USER.email,
+                   USER.phone, USER.dept, USER.position];
+      views.forEach(function(v, i) { if (vals[i] !== undefined) v.textContent = vals[i] || '—'; });
+    }
+    var flds = ['fPrefix','fFirstName','fLastName','fEmail','fPhone','fDept','fPosition'];
+    var fval = [USER.prefix, USER.firstName, USER.lastName, USER.email, USER.phone, USER.dept, USER.position];
+    flds.forEach(function(id, i) {
+      var el = $$(id);
+      if (el) el.value = fval[i] || '';
+    });
+
+    // ESC close modals
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeModal('pwdModal');
+    });
+    $$('pwdModal').addEventListener('click', function(e){
+      if (e.target === this) closeModal('pwdModal');
+    });
+
+    // โหลดข้อมูลจริงจาก API (async — ไม่บล็อก UI)
+    loadProfile();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else { init(); }
+
+}());
+</script>
+</body>
+</html>

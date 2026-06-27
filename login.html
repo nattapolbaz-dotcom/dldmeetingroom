@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>เข้าสู่ระบบ — ระบบจองห้องประชุม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       DESIGN SYSTEM
+    ========================================== */
+    :root {
+      --primary:      #1B4F72;
+      --primary-dark: #163d58;
+      --primary-deep: #0f2d43;
+      --secondary:    #2E86AB;
+      --accent:       #17A589;
+      --bg:           #F0F4F8;
+      --surface:      #FFFFFF;
+      --surface-2:    #F8FAFC;
+      --text-dark:    #1A2332;
+      --text-mid:     #4A5568;
+      --text-light:   #718096;
+      --text-muted:   #A0AEC0;
+      --border:       #E2E8F0;
+      --danger:       #C0392B;
+      --warning:      #D68910;
+      --success:      #17A589;
+      --shadow-focus: 0 0 0 3px rgba(27,79,114,0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    input, select, button, textarea {
+      font-family: inherit;
+    }
+
+    input::placeholder { color: var(--text-muted); }
+    select { -webkit-appearance: none; appearance: none; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 4px; }
+
+    /* ==========================================
+       ANIMATIONS
+    ========================================== */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes toastIn {
+      from { transform: translateX(calc(100% + 32px)); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes toastOut {
+      from { transform: translateX(0); opacity: 1; }
+      to   { transform: translateX(calc(100% + 32px)); opacity: 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================
+       TOAST
+    ========================================== */
+    #toast {
+      position: fixed;
+      top: 24px; right: 24px;
+      z-index: 9999;
+      min-width: 300px; max-width: 420px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      animation: toastIn 320ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background 200ms;
+      pointer-events: none;
+    }
+
+    #toast.hidden { display: none !important; }
+    #toast.out    { animation: toastOut 280ms ease forwards; }
+
+    #toast svg { flex-shrink: 0; }
+    #toast span { flex: 1; line-height: 1.45; }
+
+    /* ==========================================
+       LAYOUT — Split Panel
+    ========================================== */
+    #app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== BRAND PANEL (Left 40%) ===== */
+    #brand-panel {
+      width: 40%;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: var(--primary);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .brand-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 48px 44px;
+      max-width: 370px;
+      width: 100%;
+    }
+
+    .brand-icon {
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.11);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 30px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+    }
+
+    .brand-content h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      margin: 0 0 10px;
+      letter-spacing: -0.4px;
+    }
+
+    .brand-org {
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.82);
+      margin: 0 0 8px;
+      letter-spacing: 0.1px;
+    }
+
+    .brand-tagline {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.65;
+      margin: 0 0 36px;
+    }
+
+    .brand-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.13);
+      margin-bottom: 28px;
+    }
+
+    .brand-features {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+
+    .brand-feature {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .feature-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.09);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .feature-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.45;
+    }
+
+    /* ===== FORM PANEL (Right 60%) ===== */
+    #form-panel {
+      width: 60%;
+      background: var(--surface);
+      overflow-y: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 52px 60px;
+    }
+
+    .form-inner {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    /* ==========================================
+       PAGE VIEWS
+    ========================================== */
+    .view { display: none; animation: fadeIn 220ms ease; }
+    .view.active { display: block; }
+
+    /* ==========================================
+       FORM ELEMENTS
+    ========================================== */
+    .form-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .form-subtitle {
+      font-size: 14px;
+      color: var(--text-light);
+      margin: 0 0 36px;
+      line-height: 1.5;
+    }
+
+    .form-subtitle.tight { margin-bottom: 26px; }
+
+    form { display: flex; flex-direction: column; }
+
+    .field { margin-bottom: 18px; }
+    .field.sm { margin-bottom: 14px; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-mid);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .label-sm { margin-bottom: 5px; }
+
+    .req { color: var(--danger); }
+
+    /* Input wrapper (icon inside) */
+    .input-wrap { position: relative; }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      display: flex;
+      color: var(--text-light);
+    }
+
+    .input-icon.sm { left: 10px; }
+
+    .input-eye {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      transition: color 200ms;
+    }
+
+    .input-eye:hover { color: var(--text-dark); }
+
+    /* Base input / select */
+    .inp {
+      width: 100%;
+      padding: 11px 12px 11px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-dark);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 200ms, box-shadow 200ms;
+    }
+
+    .inp.no-icon { padding-left: 12px; }
+    .inp.with-eye { padding-right: 44px; }
+    .inp.sm { padding: 10px 12px 10px 32px; }
+    .inp.sm.no-icon { padding-left: 12px; }
+    .inp.sm.with-eye { padding-right: 34px; }
+
+    .inp:focus {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-focus);
+    }
+
+    .inp.err  { border-color: var(--danger); }
+    .inp.ok   { border-color: var(--success); }
+
+    /* Select */
+    .sel-wrap { position: relative; }
+
+    .sel-wrap .sel-arrow {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-light);
+    }
+
+    select.inp {
+      cursor: pointer;
+      padding-right: 36px;
+    }
+
+    /* Error message */
+    .err-msg {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--danger);
+    }
+
+    .err-msg.sm { font-size: 11px; gap: 4px; margin-top: 5px; }
+
+    /* ==========================================
+       BUTTONS
+    ========================================== */
+    .btn {
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 200ms, opacity 200ms;
+      letter-spacing: 0.2px;
+    }
+
+    .btn:disabled { cursor: not-allowed; opacity: 0.75; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-primary:active:not(:disabled) { background: var(--primary-deep); }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--primary);
+      border: 1.5px solid var(--border);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--primary);
+      background: var(--bg);
+    }
+
+    .btn-ghost {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 0;
+      font-size: 13px;
+      color: var(--text-light);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 200ms;
+      margin-bottom: 22px;
+    }
+    .btn-ghost:hover { color: var(--primary); }
+
+    /* Spinner */
+    .spinner {
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================
+       DIVIDER
+    ========================================== */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 28px 0;
+    }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: 12px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+
+    /* ==========================================
+       FORGOT LINK
+    ========================================== */
+    .forgot-row {
+      text-align: right;
+      margin-bottom: 24px;
+    }
+    .forgot-link {
+      font-size: 13px;
+      color: var(--secondary);
+      font-weight: 500;
+      transition: text-decoration 200ms;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+
+    /* ==========================================
+       PASSWORD STRENGTH
+    ========================================== */
+    .strength-bars {
+      display: flex;
+      gap: 3px;
+      margin-top: 7px;
+    }
+    .s-bar {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: var(--border);
+      transition: background 250ms;
+    }
+    .strength-label {
+      font-size: 11px;
+      margin: 3px 0 0;
+      font-weight: 500;
+    }
+
+    /* ==========================================
+       CHECKBOX
+    ========================================== */
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 16px; height: 16px;
+      margin-top: 2px;
+      cursor: pointer;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+    .checkbox-label {
+      font-size: 13px;
+      color: var(--text-mid);
+      cursor: pointer;
+      line-height: 1.5;
+    }
+    .checkbox-label a {
+      color: var(--secondary);
+      transition: text-decoration 200ms;
+    }
+    .checkbox-label a:hover { text-decoration: underline; }
+
+    /* ==========================================
+       INFO BOX
+    ========================================== */
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #EBF5FB;
+      border-radius: 8px;
+      border-left: 3px solid var(--secondary);
+      font-size: 13px;
+      color: var(--secondary);
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+    .info-box svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* ==========================================
+       FOOTER TEXT
+    ========================================== */
+    .form-footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .form-footer.tight { margin-top: 32px; }
+
+    /* ==========================================
+       RESPONSIVE — MOBILE < 768px
+    ========================================== */
+    @media (max-width: 767px) {
+      #app { flex-direction: column; }
+
+      #brand-panel {
+        width: 100%;
+        position: relative;
+        height: auto;
+        min-height: 280px;
+      }
+
+      .brand-content {
+        padding: 36px 28px;
+      }
+
+      .brand-features { display: none; }
+      .brand-divider  { display: none; }
+
+      #form-panel {
+        width: 100%;
+        padding: 36px 24px;
+        align-items: flex-start;
+      }
+
+      .form-inner { max-width: 100%; }
+
+      .field-row { grid-template-columns: 1fr; }
+
+      .form-title { font-size: 22px; }
+    }
+
+    /* TABLET 768–1024 */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      #brand-panel { width: 38%; }
+      #form-panel  { width: 62%; padding: 44px 48px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="hidden" role="alert" aria-live="polite">
+    <svg id="toast-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="10" fill="rgba(255,255,255,0.2)"/>
+      <path d="M6 10.5l2.5 2.5 5.5-5.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- ===== APP LAYOUT ===== -->
+  <div id="app">
+
+    <!-- ===== BRAND PANEL ===== -->
+    <aside id="brand-panel" aria-label="Brand">
+
+      <!-- Dot-grid background -->
+      <svg class="brand-bg" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <pattern id="dotpat" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <circle cx="20" cy="20" r="1.5" fill="rgba(255,255,255,0.09)"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#dotpat)"/>
+        <circle cx="10%" cy="90%" r="220" fill="rgba(255,255,255,0.035)"/>
+        <circle cx="92%" cy="8%"  r="170" fill="rgba(255,255,255,0.035)"/>
+        <circle cx="50%" cy="50%" r="260" fill="rgba(255,255,255,0.018)"/>
+      </svg>
+
+      <!-- Brand content -->
+      <div class="brand-content">
+        <div class="brand-icon">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <rect x="4" y="16" width="32" height="21" rx="2" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.88)" stroke-width="1.5"/>
+            <path d="M2 16 L20 4 L38 16" stroke="rgba(255,255,255,0.88)" stroke-width="1.5" stroke-linejoin="round"/>
+            <rect x="8"    y="21" width="7" height="6" rx="1" fill="rgba(255,255,255,0.48)"/>
+            <rect x="25"   y="21" width="7" height="6" rx="1" fill="rgba(255,255,255,0.48)"/>
+            <rect x="16.5" y="27" width="7" height="10" rx="1" fill="rgba(255,255,255,0.78)"/>
+          </svg>
+        </div>
+        <h1>ระบบจองห้องประชุม</h1>
+        <p class="brand-org">สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
+        <p class="brand-tagline">จองห้องประชุมออนไลน์ สะดวก รวดเร็ว<br>ทุกที่ทุกเวลา</p>
+
+        <div class="brand-divider"></div>
+
+        <div class="brand-features">
+          <div class="brand-feature">
+            <div class="feature-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+                <path d="M1.5 6.5h13" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+                <path d="M5 1v3M11 1v3" stroke="rgba(255,255,255,0.82)" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="feature-text">จองและยกเลิกได้ทันที</span>
+          </div>
+          <div class="brand-feature">
+            <div class="feature-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="1"   y="1"   width="5.5" height="5.5" rx="1" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+                <rect x="9.5" y="1"   width="5.5" height="5.5" rx="1" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+                <rect x="1"   y="9.5" width="5.5" height="5.5" rx="1" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+                <rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <span class="feature-text">ตรวจสอบตารางห้องแบบ Real-time</span>
+          </div>
+          <div class="brand-feature">
+            <div class="feature-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 1a5 5 0 00-5 5v3L1.5 12h13L13 9V6A5 5 0 008 1z" stroke="rgba(255,255,255,0.82)" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="rgba(255,255,255,0.82)" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <span class="feature-text">รับการแจ้งเตือนอัตโนมัติ</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== FORM PANEL ===== -->
+    <main id="form-panel">
+      <div class="form-inner">
+
+        <!-- ========== VIEW: LOGIN ========== -->
+        <div id="view-login" class="view active">
+
+          <h2 class="form-title">เข้าสู่ระบบ</h2>
+          <p class="form-subtitle">ยินดีต้อนรับ กรุณาเข้าสู่ระบบด้วยบัญชีของคุณ</p>
+
+          <form id="login-form" novalidate>
+
+            <!-- Email -->
+            <div class="field">
+              <label for="l-email">อีเมล</label>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="3.5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <input id="l-email" type="email" class="inp" placeholder="your@email.com"
+                  autocomplete="email" inputmode="email" aria-required="true">
+              </div>
+              <div id="l-email-err" class="err-msg" hidden aria-live="polite">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span></span>
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="field" style="margin-bottom:8px;">
+              <label for="l-pwd">รหัสผ่าน</label>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="3" y="7" width="10" height="7.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M5 7V5.5a3 3 0 116 0V7" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="8" cy="10.5" r="1.2" fill="currentColor"/>
+                  </svg>
+                </span>
+                <input id="l-pwd" type="password" class="inp with-eye" placeholder="••••••••"
+                  autocomplete="current-password" aria-required="true">
+                <button type="button" class="input-eye" id="l-pwd-toggle" aria-label="แสดง/ซ่อนรหัสผ่าน">
+                  <svg id="l-eye-show" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                  <svg id="l-eye-hide" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none;">
+                    <path d="M2 2l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M6.8 6.9A2.5 2.5 0 0010.1 9M4.1 4.2C2.4 5.4 1 8 1 8s3 5 7 5a7 7 0 002.8-.7M7 3.1A7 7 0 018 3c4 0 7 5 7 5a12 12 0 01-2 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="l-pwd-err" class="err-msg" hidden aria-live="polite">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span></span>
+              </div>
+            </div>
+
+            <!-- Forgot -->
+            <div class="forgot-row">
+              <a href="#" class="forgot-link">ลืมรหัสผ่าน?</a>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="l-submit" class="btn btn-primary">
+              เข้าสู่ระบบ
+            </button>
+
+            <!-- Divider -->
+            <div class="divider">
+              <span class="divider-line"></span>
+              <span class="divider-text">ยังไม่มีบัญชี?</span>
+              <span class="divider-line"></span>
+            </div>
+
+            <!-- Go to register -->
+            <button type="button" class="btn btn-outline" id="go-register">
+              สมัครสมาชิกใหม่ →
+            </button>
+
+          </form>
+
+          <p class="form-footer">
+            ระบบจองห้องประชุม สำนักเทคโนโลยีชีวภัณฑ์สัตว์<br>
+            &copy; 2567 สงวนลิขสิทธิ์
+          </p>
+        </div><!-- /view-login -->
+
+        <!-- ========== VIEW: REGISTER ========== -->
+        <div id="view-register" class="view">
+
+          <!-- Back button -->
+          <button type="button" class="btn-ghost" id="go-login">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            กลับไปหน้าเข้าสู่ระบบ
+          </button>
+
+          <h2 class="form-title">สมัครสมาชิก</h2>
+          <p class="form-subtitle tight">กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้ใหม่</p>
+
+          <form id="register-form" novalidate>
+
+            <!-- Row: ชื่อ + นามสกุล -->
+            <div class="field-row">
+              <div>
+                <label class="label-sm" for="r-fname">ชื่อ <span class="req">*</span></label>
+                <input id="r-fname" type="text" class="inp no-icon sm" placeholder="ชื่อ"
+                  autocomplete="given-name" aria-required="true">
+                <div id="r-fname-err" class="err-msg sm" hidden aria-live="polite">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                  <span></span>
+                </div>
+              </div>
+              <div>
+                <label class="label-sm" for="r-lname">นามสกุล <span class="req">*</span></label>
+                <input id="r-lname" type="text" class="inp no-icon sm" placeholder="นามสกุล"
+                  autocomplete="family-name" aria-required="true">
+                <div id="r-lname-err" class="err-msg sm" hidden aria-live="polite">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row: อีเมล + เบอร์โทร -->
+            <div class="field-row">
+              <div>
+                <label class="label-sm" for="r-email">อีเมล <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <span class="input-icon sm" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="3.5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <input id="r-email" type="email" class="inp sm" placeholder="your@email.com"
+                    autocomplete="email" inputmode="email" aria-required="true">
+                </div>
+                <div id="r-email-err" class="err-msg sm" hidden aria-live="polite">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                  <span></span>
+                </div>
+              </div>
+              <div>
+                <label class="label-sm" for="r-phone">เบอร์โทรศัพท์</label>
+                <input id="r-phone" type="tel" class="inp no-icon sm" placeholder="0xx-xxx-xxxx"
+                  autocomplete="tel" inputmode="tel">
+              </div>
+            </div>
+
+            <!-- แผนก -->
+            <div class="field sm">
+              <label class="label-sm" for="r-dept">แผนก/ฝ่าย</label>
+              <div class="sel-wrap">
+                <select id="r-dept" class="inp no-icon sm">
+                  <option value="">— เลือกแผนก/ฝ่าย —</option>
+                  <option value="management">ผู้บริหาร</option>
+                  <option value="research">ฝ่ายวิจัย</option>
+                  <option value="production">ฝ่ายผลิต</option>
+                  <option value="support">ฝ่ายสนับสนุน</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+                <span class="sel-arrow" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <!-- Row: รหัสผ่าน + ยืนยัน -->
+            <div class="field-row" style="align-items:start;">
+
+              <!-- Password -->
+              <div>
+                <label class="label-sm" for="r-pwd">รหัสผ่าน <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <span class="input-icon sm" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <rect x="3" y="7" width="10" height="7.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M5 7V5.5a3 3 0 116 0V7" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="8" cy="10.5" r="1.2" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <input id="r-pwd" type="password" class="inp sm with-eye" placeholder="••••••••"
+                    autocomplete="new-password" aria-required="true">
+                  <button type="button" class="input-eye" id="r-pwd-toggle" aria-label="แสดง/ซ่อนรหัสผ่าน">
+                    <svg id="r-eye-show" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <svg id="r-eye-hide" width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:none;">
+                      <path d="M2 2l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <path d="M6.8 6.9A2.5 2.5 0 0010.1 9M4.1 4.2C2.4 5.4 1 8 1 8s3 5 7 5a7 7 0 002.8-.7M7 3.1A7 7 0 018 3c4 0 7 5 7 5a12 12 0 01-2 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <!-- Strength indicator -->
+                <div id="strength-wrap" style="display:none;">
+                  <div class="strength-bars">
+                    <div class="s-bar" id="sb1"></div>
+                    <div class="s-bar" id="sb2"></div>
+                    <div class="s-bar" id="sb3"></div>
+                    <div class="s-bar" id="sb4"></div>
+                  </div>
+                  <p class="strength-label" id="strength-label"></p>
+                </div>
+                <div id="r-pwd-err" class="err-msg sm" hidden aria-live="polite">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                  <span></span>
+                </div>
+              </div>
+
+              <!-- Confirm password -->
+              <div>
+                <label class="label-sm" for="r-confirm">ยืนยันรหัสผ่าน <span class="req">*</span></label>
+                <div class="input-wrap">
+                  <span class="input-icon sm" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <rect x="3" y="7" width="10" height="7.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M5 7V5.5a3 3 0 116 0V7" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="8" cy="10.5" r="1.2" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <input id="r-confirm" type="password" class="inp sm with-eye" placeholder="••••••••"
+                    autocomplete="new-password" aria-required="true">
+                  <button type="button" class="input-eye" id="r-confirm-toggle" aria-label="แสดง/ซ่อนการยืนยันรหัสผ่าน">
+                    <svg id="rc-eye-show" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <svg id="rc-eye-hide" width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:none;">
+                      <path d="M2 2l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <path d="M6.8 6.9A2.5 2.5 0 0010.1 9M4.1 4.2C2.4 5.4 1 8 1 8s3 5 7 5a7 7 0 002.8-.7M7 3.1A7 7 0 018 3c4 0 7 5 7 5a12 12 0 01-2 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div id="r-confirm-err" class="err-msg sm" hidden aria-live="polite">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                  <span></span>
+                </div>
+              </div>
+
+            </div><!-- /field-row passwords -->
+
+            <!-- Terms -->
+            <div>
+              <div class="checkbox-row">
+                <input type="checkbox" id="r-terms">
+                <label for="r-terms" class="checkbox-label">
+                  ฉันยอมรับ
+                  <a href="#">เงื่อนไขการใช้งาน</a>
+                  และ
+                  <a href="#">นโยบายความเป็นส่วนตัว</a>
+                </label>
+              </div>
+              <div id="r-terms-err" class="err-msg sm" hidden aria-live="polite" style="padding-left:26px;">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="5.5" stroke="currentColor" stroke-width="1"/>
+                  <path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <span></span>
+              </div>
+            </div>
+
+            <!-- Submit register -->
+            <button type="submit" id="r-submit" class="btn btn-primary" style="margin-bottom:0;">
+              สมัครสมาชิก
+            </button>
+
+            <!-- Info box -->
+            <div class="info-box">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="8" cy="4.5" r="0.8" fill="currentColor"/>
+              </svg>
+              <span>บัญชีจะรอการอนุมัติจากผู้ดูแลระบบ ก่อนสามารถเข้าสู่ระบบได้</span>
+            </div>
+
+          </form>
+
+          <p class="form-footer tight">
+            ระบบจองห้องประชุม สำนักเทคโนโลยีชีวภัณฑ์สัตว์<br>
+            &copy; 2567 สงวนลิขสิทธิ์
+          </p>
+        </div><!-- /view-register -->
+
+      </div><!-- /form-inner -->
+    </main>
+  </div><!-- /#app -->
+
+  <!-- ==========================================
+       JAVASCRIPT — Vanilla JS, no dependencies
+  ========================================== -->
+  <!-- api.js ต้อง load ก่อน script หลัก เพื่อให้ DLD.setToken ใช้ได้ -->
+  <script src="api.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ---- Helpers ---- */
+    const $ = id => document.getElementById(id);
+
+    /*
+     * ถ้า user login อยู่แล้ว ไม่ควรเห็นหน้า login อีก
+     * → redirect ไป dashboard ทันที
+     */
+    if (DLD.isLoggedIn()) {
+      window.location.replace('dashboard.html');
+    }
+    const SPINNER_SVG = `<svg class="spinner" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M8 2a6 6 0 016 6" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+
+    /* ---- Toast ---- */
+    let toastTimer = null;
+
+    function showToast(message, type) {
+      type = type || 'success';
+      const toast = $('toast');
+      const msg   = $('toast-msg');
+
+      toast.style.background = type === 'error' ? '#C0392B' : '#17A589';
+      msg.textContent = message;
+
+      toast.classList.remove('hidden', 'out');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        toast.classList.add('out');
+        setTimeout(function () { toast.classList.add('hidden'); }, 300);
+      }, 4000);
+    }
+
+    /* ---- View switch ---- */
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(function (v) {
+        v.classList.remove('active');
+      });
+      $(name === 'login' ? 'view-login' : 'view-register').classList.add('active');
+      $('form-panel').scrollTop = 0;
+    }
+
+    $('go-register').addEventListener('click', function () { showView('register'); });
+    $('go-login').addEventListener('click', function () { showView('login'); });
+
+    /* ---- Password toggle helper ---- */
+    function initEyeToggle(btnId, inputId, showId, hideId) {
+      $(btnId).addEventListener('click', function () {
+        var inp  = $(inputId);
+        var show = $(showId);
+        var hide = $(hideId);
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          show.style.display = 'none';
+          hide.style.display = '';
+        } else {
+          inp.type = 'password';
+          show.style.display = '';
+          hide.style.display = 'none';
+        }
+      });
+    }
+
+    initEyeToggle('l-pwd-toggle',   'l-pwd',    'l-eye-show',  'l-eye-hide');
+    initEyeToggle('r-pwd-toggle',   'r-pwd',    'r-eye-show',  'r-eye-hide');
+    initEyeToggle('r-confirm-toggle','r-confirm','rc-eye-show', 'rc-eye-hide');
+
+    /* ---- Field error helper ---- */
+    function setError(inputEl, errDivId, message) {
+      var errDiv = $(errDivId);
+      if (message) {
+        inputEl.classList.remove('ok');
+        inputEl.classList.add('err');
+        errDiv.querySelector('span').textContent = message;
+        errDiv.hidden = false;
+      } else {
+        inputEl.classList.remove('err');
+        if (inputEl.value.trim()) inputEl.classList.add('ok');
+        errDiv.hidden = true;
+      }
+    }
+
+    /* ---- Validators ---- */
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    /* ---- Password strength ---- */
+    var strengthLabels = ['', 'อ่อนมาก', 'อ่อน', 'ปานกลาง', 'แข็งแกร่ง'];
+    var strengthColors = ['', '#C0392B', '#D68910', '#D68910', '#17A589'];
+    var barActive      = ['', '#C0392B', '#D68910', '#D68910', '#17A589'];
+
+    function pwdStrength(pwd) {
+      if (!pwd) return 0;
+      var s = 0;
+      if (pwd.length >= 8)            s++;
+      if (/[A-Z]/.test(pwd))          s++;
+      if (/[0-9]/.test(pwd))          s++;
+      if (/[^A-Za-z0-9]/.test(pwd))   s++;
+      return s;
+    }
+
+    function updateStrength(pwd) {
+      var wrap  = $('strength-wrap');
+      var label = $('strength-label');
+      if (!pwd) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      var s  = pwdStrength(pwd);
+      var c  = barActive[s] || '#E2E8F0';
+      [$('sb1'),$('sb2'),$('sb3'),$('sb4')].forEach(function (bar, i) {
+        bar.style.background = i < s ? c : '#E2E8F0';
+      });
+      label.textContent = strengthLabels[s] || '';
+      label.style.color = strengthColors[s] || '#718096';
+    }
+
+    $('r-pwd').addEventListener('input', function () {
+      updateStrength(this.value);
+      if (rTouched.pwd) validateRegPwd();
+    });
+
+    /* ---- LOGIN FORM ---- */
+    var loginSubmitted = false;
+
+    function validateLogin() {
+      var email = $('l-email').value.trim();
+      var pwd   = $('l-pwd').value;
+      var valid = true;
+
+      if (!email) {
+        setError($('l-email'), 'l-email-err', 'กรุณากรอกอีเมล');
+        valid = false;
+      } else if (!isValidEmail(email)) {
+        setError($('l-email'), 'l-email-err', 'รูปแบบอีเมลไม่ถูกต้อง');
+        valid = false;
+      } else {
+        setError($('l-email'), 'l-email-err', '');
+      }
+
+      if (!pwd) {
+        setError($('l-pwd'), 'l-pwd-err', 'กรุณากรอกรหัสผ่าน');
+        valid = false;
+      } else {
+        setError($('l-pwd'), 'l-pwd-err', '');
+      }
+
+      return valid;
+    }
+
+    $('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      loginSubmitted = true;
+      if (!validateLogin()) return;
+
+      var btn = $('l-submit');
+      btn.disabled = true;
+      btn.innerHTML = SPINNER_SVG + ' กำลังเข้าสู่ระบบ...';
+
+      /*
+       * เรียก API จริง — POST /api/auth/login
+       *
+       * ขั้นตอน:
+       *   1. fetch() ส่ง email + password ไปหา server
+       *   2. server ตรวจสอบ ถ้าถูกต้องส่ง { token, user } กลับมา
+       *   3. เก็บ token ลง localStorage ด้วย DLD.setToken()
+       *   4. เก็บ user info ลง localStorage ด้วย DLD.setCurrentUser()
+       *   5. redirect ไป dashboard.html
+       *
+       * async/await คืออะไร?
+       *   fetch() ใช้เวลารอ (เหมือนโทรศัพท์รอสาย)
+       *   await บอกให้ JS หยุดรอจนกว่าจะได้คำตอบ
+       *   แทนที่จะเขียน .then().then() ซ้อนกัน — async/await อ่านง่ายกว่า
+       */
+      (async function () {
+        try {
+          var res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email:    $('l-email').value.trim(),
+              password: $('l-pwd').value
+            })
+          });
+
+          var data = await res.json();
+
+          if (!res.ok) {
+            /* Server ตอบ error เช่น 401 wrong password */
+            btn.disabled = false;
+            btn.innerHTML = 'เข้าสู่ระบบ';
+            showToast(data.error || 'เข้าสู่ระบบไม่สำเร็จ', 'error');
+            return;
+          }
+
+          /* สำเร็จ — เก็บ token และ user ลง localStorage */
+          DLD.setToken(data.token);
+          DLD.setCurrentUser(data.user);
+
+          showToast('เข้าสู่ระบบสำเร็จ! กำลังพาคุณไปยัง Dashboard...');
+          setTimeout(function () {
+            /* admin → admin.html, user ปกติ → dashboard.html */
+            if (data.user.role === 'admin') {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'dashboard.html';
+            }
+          }, 1000);
+
+        } catch (err) {
+          /* Network error — server ไม่ตอบ */
+          btn.disabled = false;
+          btn.innerHTML = 'เข้าสู่ระบบ';
+          showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่', 'error');
+        }
+      }());
+    });
+
+    /* ---- REGISTER FORM ---- */
+    var regSubmitted = false;
+    var rTouched = { fname:false, lname:false, email:false, pwd:false, confirm:false };
+
+    function validateRegFname()   { var v=$('r-fname').value.trim();   setError($('r-fname'),   'r-fname-err',   v ? '' : 'กรุณากรอกชื่อ'); return !!v; }
+    function validateRegLname()   { var v=$('r-lname').value.trim();   setError($('r-lname'),   'r-lname-err',   v ? '' : 'กรุณากรอกนามสกุล'); return !!v; }
+    function validateRegEmail()   {
+      var v=$('r-email').value.trim();
+      var msg = !v ? 'กรุณากรอกอีเมล' : !isValidEmail(v) ? 'รูปแบบอีเมลไม่ถูกต้อง' : '';
+      setError($('r-email'), 'r-email-err', msg); return !msg;
+    }
+    function validateRegPwd()     {
+      var v=$('r-pwd').value;
+      var msg = !v ? 'กรุณากรอกรหัสผ่าน' : v.length < 8 ? 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร' : '';
+      setError($('r-pwd'), 'r-pwd-err', msg); return !msg;
+    }
+    function validateRegConfirm() {
+      var pwd=$('r-pwd').value, v=$('r-confirm').value;
+      var msg = !v ? 'กรุณายืนยันรหัสผ่าน' : pwd !== v ? 'รหัสผ่านไม่ตรงกัน' : '';
+      setError($('r-confirm'), 'r-confirm-err', msg); return !msg;
+    }
+    function validateRegTerms()   {
+      var checked = $('r-terms').checked;
+      var err = $('r-terms-err');
+      if (!checked) {
+        err.querySelector('span').textContent = 'กรุณายอมรับเงื่อนไขการใช้งาน';
+        err.hidden = false;
+      } else {
+        err.hidden = true;
+      }
+      return checked;
+    }
+
+    /* Blur (on-leave) validation */
+    $('r-fname').addEventListener('blur',    function () { rTouched.fname   = true; validateRegFname(); });
+    $('r-lname').addEventListener('blur',    function () { rTouched.lname   = true; validateRegLname(); });
+    $('r-email').addEventListener('blur',    function () { rTouched.email   = true; validateRegEmail(); });
+    $('r-pwd').addEventListener('blur',      function () { rTouched.pwd     = true; validateRegPwd(); });
+    $('r-confirm').addEventListener('blur',  function () { rTouched.confirm = true; validateRegConfirm(); });
+    $('r-confirm').addEventListener('input', function () { if (rTouched.confirm || regSubmitted) validateRegConfirm(); });
+    $('r-terms').addEventListener('change',  function () { if (regSubmitted) validateRegTerms(); });
+
+    $('register-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      regSubmitted = true;
+      rTouched = { fname:true, lname:true, email:true, pwd:true, confirm:true };
+
+      var ok = validateRegFname()  &
+               validateRegLname()  &
+               validateRegEmail()  &
+               validateRegPwd()    &
+               validateRegConfirm()&
+               validateRegTerms();
+
+      if (!ok) return;
+
+      var btn = $('r-submit');
+      btn.disabled = true;
+      btn.innerHTML = SPINNER_SVG + ' กำลังดำเนินการ...';
+
+      /*
+       * เรียก API จริง — POST /api/auth/register
+       *
+       * ส่งข้อมูลผู้ใช้ใหม่ไปให้ server บันทึกลง MongoDB
+       * status จะเป็น "pending" รอ admin อนุมัติก่อน login ได้
+       */
+      (async function () {
+        try {
+          var prefix = $('r-prefix') ? $('r-prefix').value : 'นาย';
+          var res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prefix:     prefix,
+              firstName:  $('r-fname').value.trim(),
+              lastName:   $('r-lname').value.trim(),
+              email:      $('r-email').value.trim(),
+              password:   $('r-pwd').value
+            })
+          });
+
+          var data = await res.json();
+
+          btn.disabled = false;
+          btn.innerHTML = 'สมัครสมาชิก';
+
+          if (!res.ok) {
+            showToast(data.error || 'สมัครสมาชิกไม่สำเร็จ', 'error');
+            return;
+          }
+
+          /* สำเร็จ — รีเซ็ตฟอร์มแล้วพากลับหน้า login */
+          showToast('สมัครสมาชิกสำเร็จ! รอการอนุมัติจากผู้ดูแลระบบ');
+          setTimeout(function () {
+            showView('login');
+            regSubmitted = false;
+            rTouched = { fname:false, lname:false, email:false, pwd:false, confirm:false };
+            $('register-form').reset();
+            $('strength-wrap').style.display = 'none';
+            ['r-fname','r-lname','r-email','r-pwd','r-confirm'].forEach(function (id) {
+              $(id).classList.remove('ok','err');
+            });
+          }, 2000);
+
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = 'สมัครสมาชิก';
+          showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่', 'error');
+        }
+      }());
+    });
+
+    /* ---- Hash-based deep link to register ---- */
+    if (window.location.hash === '#register') showView('register');
+
+  }());
+  </script>
+
+</body>
+</html>
