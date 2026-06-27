@@ -830,8 +830,7 @@ app.get('/api/reports/calendar', authRequired, async function (req, res) {
    SEED (dev only) — POST /api/seed
    Creates default admin + sample rooms
 ───────────────────────────────────────────────────── */
-if (process.env.NODE_ENV !== 'production') {
-  app.post('/api/seed', async function (req, res) {
+app.post('/api/seed', async function (req, res) {
     try {
       /* Admin account */
       var adminExists = await User.findOne({ email: 'admin@dld.go.th' });
@@ -859,7 +858,6 @@ if (process.env.NODE_ENV !== 'production') {
       res.status(500).json({ error: err.message });
     }
   });
-}
 
 /* ─────────────────────────────────────────────────────
    CATCH-ALL — serve frontend
