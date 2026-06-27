@@ -984,8 +984,9 @@
     }
 
     try {
-      // เรียก PUT /api/profile
-      var res = await apiPut('/profile', {
+      // เรียก PUT /api/profile — apiPut คืน JSON โดยตรง (ไม่ใช่ Response object)
+      // ถ้า server ตอบ error จะ throw Error อัตโนมัติ
+      await apiPut('/profile', {
         prefix:     $$('fPrefix').value,
         firstName:  first,
         lastName:   last,
@@ -993,11 +994,6 @@
         department: $$('fDept').value.trim(),
         position:   $$('fPosition').value.trim()
       });
-      if (!res.ok) {
-        var err = await res.json();
-        showToast(err.error || 'บันทึกไม่สำเร็จ', 'error');
-        return;
-      }
 
       // อัปเดต USER object หลัง save สำเร็จ
       USER.prefix    = $$('fPrefix').value;
@@ -1038,7 +1034,7 @@
       showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
 
     } catch(e) {
-      showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+      showToast(e.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
     }
   };
 
