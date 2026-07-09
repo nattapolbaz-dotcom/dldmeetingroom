@@ -139,11 +139,12 @@
   .grid-head__cell.is-today { color: var(--primary); background: #EBF5FB; }
   .grid-head__corner { border-left: none; }
 
-  .grid-body { display: grid; position: relative; min-width: 560px; }
+  .grid-body { display: grid; position: relative; min-width: 560px; padding-top: 10px; }
   .time-gutter { position: relative; }
   .time-gutter__label {
     height: var(--row-h); font-size: 10.5px; color: var(--text-muted); text-align: right;
     padding-right: 8px; transform: translateY(-6px); box-sizing: border-box;
+    white-space: nowrap; line-height: 1;
   }
   .day-col {
     position: relative; border-left: 1px solid var(--border); touch-action: none; user-select: none;
