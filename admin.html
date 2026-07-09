@@ -1493,13 +1493,36 @@
     state.deleteCallback = function(){
       (async function(){
         try {
-          await apiDelete('/rooms/' + roomId);
+          var res = await apiDelete('/rooms/' + roomId);
           var idx = ROOMS.findIndex(function(x){ return x.id===roomId; });
           if (idx !== -1) ROOMS.splice(idx, 1);
           closeModal('deleteModal');
           renderRooms(); renderDashboard();
-          showToast('ลบห้อง ' + (r?r.name:roomId) + ' เรียบร้อยแล้ว', 'info');
-        } catch(err) { closeModal('deleteModal'); showToast(err.message, 'error'); }
+          var extra = res && res.cancelledBookings ? (' (ยกเลิกการจองที่ค้างอยู่ ' + res.cancelledBookings + ' รายการไปด้วย)') : '';
+          showToast('ลบห้อง ' + (r?r.name:roomId) + ' เรียบร้อยแล้ว' + extra, 'info');
+        } catch(err) {
+          closeModal('deleteModal');
+          if (err.message === 'ไม่สามารถลบห้องที่มีการจองอยู่ได้') {
+            var confirmForce = confirm(
+              'ห้อง "' + (r?r.name:roomId) + '" ยังมีการจองที่ค้างอยู่ (pending/approved)\n\n' +
+              'ต้องการยกเลิกการจองทั้งหมดของห้องนี้ แล้วลบห้องทิ้งเลยหรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'
+            );
+            if (confirmForce) {
+              (async function(){
+                try {
+                  var res2 = await apiDelete('/rooms/' + roomId + '?force=true');
+                  var idx2 = ROOMS.findIndex(function(x){ return x.id===roomId; });
+                  if (idx2 !== -1) ROOMS.splice(idx2, 1);
+                  renderRooms(); renderDashboard();
+                  var extra2 = res2 && res2.cancelledBookings ? (' (ยกเลิกการจองที่ค้างอยู่ ' + res2.cancelledBookings + ' รายการไปด้วย)') : '';
+                  showToast('ลบห้อง ' + (r?r.name:roomId) + ' เรียบร้อยแล้ว' + extra2, 'info');
+                } catch(err2) { showToast(err2.message, 'error'); }
+              }());
+            }
+          } else {
+            showToast(err.message, 'error');
+          }
+        }
       }());
     };
     openModal('deleteModal');

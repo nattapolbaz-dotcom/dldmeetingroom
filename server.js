@@ -406,14 +406,33 @@ app.put('/api/rooms/:id', adminRequired, async function (req, res) {
   }
 });
 
+/* ลบห้องประชุม
+ * ปกติ: ถ้ามีการจองที่ pending/approved อยู่ จะลบไม่ได้ (กันลบพลาด)
+ * ถ้าส่ง ?force=true มา: จะยกเลิกการจองที่ค้างอยู่ทั้งหมดของห้องนี้ก่อน แล้วค่อยลบห้องจริง
+ */
 app.delete('/api/rooms/:id', adminRequired, async function (req, res) {
   try {
+    var force = req.query.force === 'true';
     var hasActive = await Booking.exists({ room: req.params.id, status: { $in: ['pending','approved'] } });
-    if (hasActive) return res.status(409).json({ error: 'ไม่สามารถลบห้องที่มีการจองอยู่ได้' });
+
+    if (hasActive && !force) {
+      return res.status(409).json({ error: 'ไม่สามารถลบห้องที่มีการจองอยู่ได้', hasActiveBookings: true });
+    }
+
+    var cancelledCount = 0;
+    if (hasActive && force) {
+      var result = await Booking.updateMany(
+        { room: req.params.id, status: { $in: ['pending', 'approved'] } },
+        { status: 'cancelled' }
+      );
+      cancelledCount = result.modifiedCount || 0;
+    }
+
     var room = await Room.findByIdAndDelete(req.params.id);
     if (!room) return res.status(404).json({ error: 'ไม่พบห้องประชุม' });
-    res.json({ message: 'ลบห้องประชุมสำเร็จ' });
+    res.json({ message: 'ลบห้องประชุมสำเร็จ', cancelledBookings: cancelledCount });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
   }
 });
