@@ -1296,6 +1296,9 @@
                   '<button class="btn btn-danger btn-sm" onclick="openRejectModal(\'' + b.id + '\')">' +
                   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ปฏิเสธ</button>';
       }
+      actions += '<button class="btn-icon danger" onclick="openDeleteBooking(\'' + b.id + '\')" title="ลบรายการนี้ถาวร">' +
+                 '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>' +
+                 '</button>';
 
       var rejBox = (b.status==='rejected' && b.rejectionReason)
         ? '<div class="reject-reason-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
@@ -1375,6 +1378,26 @@
     }());
   }
   window.confirmReject = confirmReject;
+
+  function openDeleteBooking(id) {
+    var b = BOOKINGS.find(function(x){ return x.id===id; });
+    $$('deleteModalTitle').textContent = 'ลบรายการจอง';
+    $$('deleteModalMsg').textContent = 'ต้องการลบรายการจอง "' + (b?b.title:id) + '" ออกจากระบบถาวรหรือไม่? (ใช้สำหรับล้างข้อมูลทดสอบ/ข้อมูลผิดพลาด การกระทำนี้ไม่สามารถย้อนกลับได้)';
+    state.deleteCallback = function(){
+      (async function(){
+        try {
+          await apiDelete('/admin/bookings/' + id);
+          var idx = BOOKINGS.findIndex(function(x){ return x.id===id; });
+          if (idx !== -1) BOOKINGS.splice(idx, 1);
+          closeModal('deleteModal');
+          updateNavBadges(); renderDashboard(); renderApprovals();
+          showToast('ลบรายการจอง ' + (b?b.title:id) + ' เรียบร้อยแล้ว', 'info');
+        } catch(err) { closeModal('deleteModal'); showToast(err.message, 'error'); }
+      }());
+    };
+    openModal('deleteModal');
+  }
+  window.openDeleteBooking = openDeleteBooking;
 
   function bookingInfoHTML(b) {
     return '<div class="info-row"><span class="info-lbl">ผู้จอง</span><span class="info-val">' + esc(b.requester) + '</span></div>' +

@@ -655,9 +655,10 @@ app.put('/api/bookings/:id/cancel', authRequired, async function (req, res) {
 
 /* ─────────────────────────────────────────────────────
    ROUTES — BOOKINGS (Admin)
-   GET  /api/admin/bookings
-   PUT  /api/admin/bookings/:id/approve
-   PUT  /api/admin/bookings/:id/reject
+   GET    /api/admin/bookings
+   PUT    /api/admin/bookings/:id/approve
+   PUT    /api/admin/bookings/:id/reject
+   DELETE /api/admin/bookings/:id
 ───────────────────────────────────────────────────── */
 
 /* List all bookings (admin) */
@@ -722,6 +723,17 @@ app.put('/api/admin/bookings/:id/reject', adminRequired, async function (req, re
     booking.approvedAt      = new Date();
     await booking.save();
     res.json({ message: 'ปฏิเสธการจองสำเร็จ', booking });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* ลบรายการจองทิ้งถาวร (admin) — ใช้สำหรับล้างข้อมูลทดสอบ/ขยะ ไม่ใช่การยกเลิกปกติ */
+app.delete('/api/admin/bookings/:id', adminRequired, async function (req, res) {
+  try {
+    var booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ error: 'ไม่พบการจอง' });
+    res.json({ message: 'ลบรายการจองสำเร็จ' });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
   }
