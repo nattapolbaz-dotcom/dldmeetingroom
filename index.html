@@ -28,7 +28,7 @@
     --radius-card: 12px;
     --radius-btn:  8px;
     --transition:  160ms ease;
-    --row-h:       48px;
+    --row-h:       56px;
   }
   * , *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -150,9 +150,10 @@
     position: relative; border-left: 1px solid var(--border); touch-action: none; user-select: none;
   }
   .hour-cell {
-    height: var(--row-h); border-bottom: 1px solid var(--border); box-sizing: border-box;
+    height: calc(var(--row-h) / 2); border-bottom: 1px solid var(--border); box-sizing: border-box;
     cursor: pointer;
   }
+  .hour-cell--half { border-bottom-style: dashed; border-bottom-color: var(--bg-alt); }
   .hour-cell:hover { background: var(--surface-2); }
   .hour-cell.disabled { cursor: not-allowed; background: repeating-linear-gradient(45deg, #F8F9FA, #F8F9FA 6px, #F1F3F5 6px, #F1F3F5 12px); }
 
@@ -311,7 +312,7 @@
       <div class="legend">
         <span><i style="background:linear-gradient(135deg,#2E86AB,#1B4F72)"></i> มีการจองแล้ว</span>
         <span><i style="background:rgba(23,165,137,.5);border:1px dashed #17A589"></i> ช่วงที่กำลังเลือก</span>
-        <span>⏱ เวลาให้บริการ 08:00–20:00 น. • จองทีละชั่วโมง</span>
+        <span>⏱ เวลาให้บริการ 08:00–20:00 น. • จองได้ทีละ 30 นาที</span>
       </div>
     </div>
 
@@ -376,7 +377,11 @@
   /* ============ CONFIG ============ */
   var BUSINESS_START = 8;   // 08:00
   var BUSINESS_END   = 20;  // 20:00 (exclusive)
-  var ROW_H = 48;
+  var ROW_H = 56;           // px per 1 ชั่วโมง
+  var SLOT_MIN = 30;        // จองได้ทีละ 30 นาที
+  var SLOTS_PER_HOUR = 60 / SLOT_MIN;
+  var SLOT_H = ROW_H / SLOTS_PER_HOUR;               // px per slot
+  var TOTAL_SLOTS = (BUSINESS_END - BUSINESS_START) * SLOTS_PER_HOUR;
   var DAY_NAMES_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
   var MONTH_NAMES_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
@@ -536,10 +541,11 @@
     var dateStr = fmtDate(date);
     var dayBookings = bookingsOn(dateStr);
 
-    for (var h = BUSINESS_START; h < BUSINESS_END; h++) {
+    for (var s = 0; s < TOTAL_SLOTS; s++) {
       var cell = document.createElement('div');
-      cell.className = 'hour-cell';
-      cell.dataset.hour = h;
+      var isHalf = (s % SLOTS_PER_HOUR) !== 0;
+      cell.className = 'hour-cell' + (isHalf ? ' hour-cell--half' : '');
+      cell.dataset.slot = s;
       col.appendChild(cell);
     }
 
@@ -610,26 +616,28 @@
     root.appendChild(body);
   }
 
-  /* ============ DRAG-TO-SELECT ============ */
+  /* ============ DRAG-TO-SELECT (ทีละ 30 นาที) ============ */
   function attachDrag(col, date) {
-    var startHour = null, preview = null;
+    var startSlot = null, preview = null;
 
-    function hourFromEvent(ev) {
+    function slotFromEvent(ev) {
       var rect = col.getBoundingClientRect();
       var y = (ev.clientY !== undefined ? ev.clientY : ev.touches[0].clientY) - rect.top;
-      var h = BUSINESS_START + Math.floor(y / ROW_H);
-      return Math.max(BUSINESS_START, Math.min(BUSINESS_END - 1, h));
+      var s = Math.floor(y / SLOT_H);
+      return Math.max(0, Math.min(TOTAL_SLOTS - 1, s));
     }
+    function slotStartMinutes(s) { return BUSINESS_START * 60 + s * SLOT_MIN; }
 
-    function rangeHasConflict(h1, h2) {
-      var s = h1 * 60, e = (h2 + 1) * 60;
+    function rangeHasConflict(s1, s2) {
+      var lo = Math.min(s1, s2), hi = Math.max(s1, s2);
+      var startMin = slotStartMinutes(lo), endMin = slotStartMinutes(hi) + SLOT_MIN;
       return bookingsOn(fmtDate(date)).some(function (b) {
-        return timeToMinutes(b.startTime) < e && timeToMinutes(b.endTime) > s;
+        return timeToMinutes(b.startTime) < endMin && timeToMinutes(b.endTime) > startMin;
       });
     }
 
-    function updatePreview(h1, h2) {
-      var lo = Math.min(h1, h2), hi = Math.max(h1, h2);
+    function updatePreview(s1, s2) {
+      var lo = Math.min(s1, s2), hi = Math.max(s1, s2);
       if (!preview) {
         preview = document.createElement('div');
         preview.className = 'selection-preview';
@@ -637,35 +645,35 @@
       }
       var invalid = rangeHasConflict(lo, hi);
       preview.classList.toggle('invalid', invalid);
-      preview.style.top = ((lo - BUSINESS_START) * ROW_H) + 'px';
-      preview.style.height = ((hi - lo + 1) * ROW_H - 3) + 'px';
+      preview.style.top = (lo * SLOT_H) + 'px';
+      preview.style.height = ((hi - lo + 1) * SLOT_H - 3) + 'px';
       preview.dataset.invalid = invalid ? '1' : '';
     }
 
     function onDown(ev) {
       if (ev.target !== col && !ev.target.classList.contains('hour-cell')) return;
-      var h = hourFromEvent(ev);
-      if (rangeHasConflict(h, h)) return; // starting on an occupied hour: ignore drag
-      startHour = h;
-      updatePreview(h, h);
+      var s = slotFromEvent(ev);
+      if (rangeHasConflict(s, s)) return; // starting on an occupied slot: ignore drag
+      startSlot = s;
+      updatePreview(s, s);
       col.setPointerCapture && ev.pointerId !== undefined && col.setPointerCapture(ev.pointerId);
       state.dragging = { col: col, date: date };
     }
     function onMove(ev) {
-      if (startHour === null) return;
-      var h = hourFromEvent(ev);
-      updatePreview(startHour, h);
+      if (startSlot === null) return;
+      var s = slotFromEvent(ev);
+      updatePreview(startSlot, s);
     }
     function onUp(ev) {
-      if (startHour === null) return;
-      var h = hourFromEvent(ev);
-      var lo = Math.min(startHour, h), hi = Math.max(startHour, h);
+      if (startSlot === null) return;
+      var s = slotFromEvent(ev);
+      var lo = Math.min(startSlot, s), hi = Math.max(startSlot, s);
       var invalid = preview && preview.dataset.invalid === '1';
       if (preview) { preview.remove(); preview = null; }
-      startHour = null;
+      startSlot = null;
       state.dragging = null;
       if (invalid) { toast('ช่วงเวลานี้ทับกับการจองที่มีอยู่แล้ว', true); return; }
-      openBookingModal(date, lo, hi + 1);
+      openBookingModal(date, slotStartMinutes(lo), slotStartMinutes(hi) + SLOT_MIN);
     }
 
     col.addEventListener('pointerdown', onDown);
@@ -727,29 +735,30 @@
   }
 
   /* ============ BOOKING MODAL ============ */
-  function fillTimeSelect(sel, excludeHour) {
+  function fillTimeSelect(sel) {
     sel.innerHTML = '';
-    for (var h = BUSINESS_START; h <= BUSINESS_END; h++) {
+    for (var m = BUSINESS_START * 60; m <= BUSINESS_END * 60; m += SLOT_MIN) {
       var opt = document.createElement('option');
-      opt.value = pad2(h) + ':00';
-      opt.textContent = pad2(h) + ':00';
+      var t = minutesToTime(m);
+      opt.value = t;
+      opt.textContent = t;
       sel.appendChild(opt);
     }
   }
 
-  function openBookingModal(date, startHour, endHour) {
+  function openBookingModal(date, startMinutes, endMinutes) {
     var bookerName = document.getElementById('bookerName').value.trim();
     if (!bookerName) {
       toast('กรุณากรอกชื่อ-นามสกุลผู้จองก่อน (ด้านบน)', true);
       document.getElementById('bookerName').focus();
       return;
     }
-    state.pendingSlot = { date: date, startHour: startHour, endHour: endHour };
+    state.pendingSlot = { date: date, startMinutes: startMinutes, endMinutes: endMinutes };
 
     var mStart = document.getElementById('mStart'), mEnd = document.getElementById('mEnd');
     fillTimeSelect(mStart); fillTimeSelect(mEnd);
-    mStart.value = pad2(startHour) + ':00';
-    mEnd.value = pad2(endHour) + ':00';
+    mStart.value = minutesToTime(startMinutes);
+    mEnd.value = minutesToTime(endMinutes);
 
     var room = state.rooms.find(function (r) { return r._id === state.roomId; });
     document.getElementById('bookSummary').textContent =
