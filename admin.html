@@ -965,8 +965,7 @@
           <label class="form-label">บทบาท</label>
           <select class="form-select" id="uaRole">
             <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
-            <option value="หัวหน้างาน">หัวหน้างาน</option>
-            <option value="ผู้บริหาร">ผู้บริหาร</option>
+            <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบ (แอดมิน)</option>
           </select>
         </div>
       </div>
@@ -980,6 +979,72 @@
           <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
         อนุมัติ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD USER (สร้างผู้ใช้ / แอดมิน ใหม่โดยตรง) ═══════════ -->
+<div class="modal-backdrop" id="addUserModal">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h2 class="modal-title">เพิ่มผู้ใช้ใหม่</h2>
+      <button class="modal-close" onclick="closeModal('addUserModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 4px;">
+        บัญชีจะใช้งานได้ทันที ระบบจะสุ่มรหัสผ่านชั่วคราวให้ — จดไว้แล้วส่งให้ผู้ใช้เปลี่ยนรหัสผ่านทีหลัง
+      </p>
+      <div class="form-row">
+        <div class="form-group" style="max-width:110px;">
+          <label class="form-label">คำนำหน้า</label>
+          <select class="form-select" id="auPrefix">
+            <option value="นาย">นาย</option>
+            <option value="นาง">นาง</option>
+            <option value="นางสาว">นางสาว</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ชื่อ <span style="color:#EF4444">*</span></label>
+          <input class="form-input" id="auFirstName" placeholder="ชื่อ" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">นามสกุล <span style="color:#EF4444">*</span></label>
+          <input class="form-input" id="auLastName" placeholder="นามสกุล" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">อีเมล <span style="color:#EF4444">*</span></label>
+        <input class="form-input" id="auEmail" type="email" placeholder="name@dld.go.th" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">แผนก / กอง</label>
+          <input class="form-input" id="auDept" placeholder="เช่น กองวิจัย" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">บทบาท</label>
+          <select class="form-select" id="auRole">
+            <option value="user">เจ้าหน้าที่</option>
+            <option value="admin">ผู้ดูแลระบบ (แอดมิน)</option>
+          </select>
+        </div>
+      </div>
+      <div id="addUserError" style="font-size:12.5px;color:#EF4444;display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addUserModal')">ยกเลิก</button>
+      <button class="btn btn-primary" id="addUserSubmitBtn" onclick="saveNewUser()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        สร้างผู้ใช้
       </button>
     </div>
   </div>
@@ -1486,6 +1551,9 @@
         actions = '<button class="btn btn-success btn-xs" onclick="openUserApproveModal(\'' + u.id + '\')">อนุมัติ</button> ';
         actions += '<button class="btn btn-danger btn-xs" onclick="openDeleteUser(\'' + u.id + '\')">ปฏิเสธ</button>';
       } else {
+        actions += u.role==='ผู้ดูแลระบบ'
+          ? '<button class="btn btn-outline btn-xs" onclick="toggleUserRole(\'' + u.id + '\')">ถอดแอดมิน</button> '
+          : '<button class="btn btn-outline btn-xs" onclick="toggleUserRole(\'' + u.id + '\')">ตั้งเป็นแอดมิน</button> ';
         actions += u.status==='active'
           ? '<button class="btn btn-outline btn-xs" onclick="toggleUserStatus(\'' + u.id + '\')">ระงับ</button>'
           : '<button class="btn btn-success btn-xs" onclick="toggleUserStatus(\'' + u.id + '\')">เปิดใช้งาน</button>';
@@ -1539,6 +1607,26 @@
   }
   window.confirmUserApprove = confirmUserApprove;
 
+  function toggleUserRole(userId) {
+    var u = USERS.find(function(x){ return x.id===userId; });
+    if (!u) return;
+    var makingAdmin = u.role !== 'ผู้ดูแลระบบ';
+    var newRole = makingAdmin ? 'admin' : 'user';
+    var msg = makingAdmin
+      ? 'ตั้งให้ "' + u.name + '" เป็นผู้ดูแลระบบ (แอดมิน) ใช่หรือไม่?'
+      : 'ถอดสิทธิ์ผู้ดูแลระบบของ "' + u.name + '" ใช่หรือไม่? (จะกลายเป็นเจ้าหน้าที่ทั่วไป)';
+    if (!confirm(msg)) return;
+    (async function(){
+      try {
+        await apiPut('/admin/users/' + userId + '/role', { role: newRole });
+        u.role = makingAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่';
+        renderUsers();
+        showToast(makingAdmin ? ('ตั้งให้ ' + u.name + ' เป็นแอดมินแล้ว') : ('ถอดสิทธิ์แอดมินของ ' + u.name + ' แล้ว'), 'success');
+      } catch(err) { showToast(err.message, 'error'); }
+    }());
+  }
+  window.toggleUserRole = toggleUserRole;
+
   function toggleUserStatus(userId) {
     var u = USERS.find(function(x){ return x.id===userId; });
     if (!u) return;
@@ -1575,8 +1663,64 @@
   window.openDeleteUser = openDeleteUser;
 
   function openAddUserModal() {
-    showToast('ฟีเจอร์นี้จะพัฒนาในเวอร์ชันถัดไป', 'info');
+    $$('auPrefix').value = 'นาย';
+    $$('auFirstName').value = '';
+    $$('auLastName').value = '';
+    $$('auEmail').value = '';
+    $$('auDept').value = '';
+    $$('auRole').value = 'user';
+    $$('addUserError').style.display = 'none';
+    openModal('addUserModal');
   }
+  window.openAddUserModal = openAddUserModal;
+
+  function saveNewUser() {
+    var errEl = $$('addUserError');
+    errEl.style.display = 'none';
+
+    var body = {
+      prefix:     $$('auPrefix').value,
+      firstName:  $$('auFirstName').value.trim(),
+      lastName:   $$('auLastName').value.trim(),
+      email:      $$('auEmail').value.trim(),
+      department: $$('auDept').value.trim(),
+      role:       $$('auRole').value
+    };
+    if (!body.firstName || !body.lastName || !body.email) {
+      errEl.textContent = 'กรุณากรอกชื่อ นามสกุล และอีเมลให้ครบ';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var btn = $$('addUserSubmitBtn');
+    btn.disabled = true;
+    (async function(){
+      try {
+        var result = await apiPost('/admin/users', body);
+        USERS.unshift({
+          id: result.user.id,
+          name: result.user.fullName,
+          email: result.user.email,
+          dept: result.user.department || '',
+          role: result.user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่',
+          status: 'active',
+          createdAt: ''
+        });
+        closeModal('addUserModal');
+        renderUsers(); renderDashboard(); updateNavBadges();
+        showToast('สร้างผู้ใช้ "' + result.user.fullName + '" สำเร็จ — รหัสผ่านชั่วคราว: ' + result.tempPassword, 'success');
+        alert('สร้างผู้ใช้สำเร็จ!\n\nชื่อ: ' + result.user.fullName + '\nอีเมล: ' + result.user.email +
+              '\nรหัสผ่านชั่วคราว: ' + result.tempPassword +
+              '\n\nกรุณาจดรหัสผ่านนี้ไว้และส่งให้ผู้ใช้ — ระบบจะไม่แสดงอีกครั้ง แนะนำให้เปลี่ยนรหัสผ่านทันทีที่ login ครั้งแรก');
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+      }
+    }());
+  }
+  window.saveNewUser = saveNewUser;
   window.openAddUserModal = openAddUserModal;
 
   /* ── NAV BADGES ───────────────────────────────── */
@@ -1638,7 +1782,7 @@
     initDeleteModal();
 
     // Modal backdrop close
-    ['rejectModal','approveModal','roomModal','userApproveModal'].forEach(function(id){
+    ['rejectModal','approveModal','roomModal','userApproveModal','addUserModal'].forEach(function(id){
       var el = $$(id);
       if (el) el.addEventListener('click', function(e){ if(e.target===this) closeModal(id); });
     });
@@ -1646,7 +1790,7 @@
     // ESC close
     document.addEventListener('keydown', function(e){
       if (e.key==='Escape') {
-        ['rejectModal','approveModal','roomModal','deleteModal','userApproveModal'].forEach(closeModal);
+        ['rejectModal','approveModal','roomModal','deleteModal','userApproveModal','addUserModal'].forEach(closeModal);
       }
     });
 

@@ -14,6 +14,7 @@ const bcrypt     = require('bcryptjs');
 const jwt        = require('jsonwebtoken');
 const cors       = require('cors');
 const path       = require('path');
+const crypto     = require('crypto');
 require('dotenv').config();
 
 /* ─────────────────────────────────────────────────────
@@ -747,6 +748,53 @@ app.get('/api/admin/users/:id', adminRequired, async function (req, res) {
     if (!user) return res.status(404).json({ error: 'ไม่พบผู้ใช้' });
     res.json(user);
   } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* สร้างผู้ใช้ใหม่โดยตรง (admin เท่านั้น) — ใช้ตอนแอดมินอยากเพิ่มแอดมิน/เจ้าหน้าที่คนใหม่
+ * บัญชีจะ active ทันที ไม่ต้องรออนุมัติ และระบบจะสุ่มรหัสผ่านชั่วคราวให้
+ * (ส่งรหัสผ่านนี้กลับไปครั้งเดียวในคำตอบ เพราะหลังจากนี้จะถูกเข้ารหัสแล้วดึงกลับไม่ได้)
+ */
+app.post('/api/admin/users', adminRequired, async function (req, res) {
+  try {
+    var { prefix, firstName, lastName, email, phone, department, position, role } = req.body;
+    if (!firstName || !lastName || !email)
+      return res.status(400).json({ error: 'กรุณากรอกชื่อ นามสกุล และอีเมลให้ครบ' });
+
+    var exists = await User.findOne({ email: String(email).toLowerCase() });
+    if (exists) return res.status(409).json({ error: 'อีเมลนี้ถูกใช้งานแล้ว' });
+
+    var tempPassword = crypto.randomBytes(6).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) + 'A1';
+
+    var user = await User.create({
+      prefix: prefix || 'นาย',
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      password: tempPassword,
+      phone: phone || '',
+      department: department || '',
+      position: position || '',
+      role: (role === 'admin') ? 'admin' : 'user',
+      status: 'active'          // แอดมินสร้างเอง ถือว่าอนุมัติแล้วในตัว
+    });
+
+    res.status(201).json({
+      message: 'สร้างผู้ใช้สำเร็จ',
+      tempPassword: tempPassword,   // แสดงครั้งเดียว — แจ้งให้ผู้ใช้เปลี่ยนรหัสผ่านทันทีที่ login ครั้งแรก
+      user: {
+        id: user._id,
+        fullName: user.prefix + user.firstName + ' ' + user.lastName,
+        email: user.email,
+        department: user.department,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
   }
 });
