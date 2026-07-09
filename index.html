@@ -1,475 +1,905 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบจองห้องประชุม — สำนักเทคโนโลยีชีวภัณฑ์สัตว์</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* ==========================================
-       DESIGN SYSTEM — ระบบจองห้องประชุม
-       สำนักเทคโนโลยีชีวภัณฑ์สัตว์
-    ========================================== */
-    :root {
-      --primary:     #1B4F72;
-      --primary-dark:#163d58;
-      --secondary:   #2E86AB;
-      --accent:      #17A589;
-      --bg:          #F0F4F8;
-      --bg-alt:      #E8F0F7;
-      --surface:     #FFFFFF;
-      --surface-2:   #F8FAFC;
-      --text-dark:   #1A2332;
-      --text-mid:    #4A5568;
-      --text-light:  #718096;
-      --text-muted:  #A0AEC0;
-      --border:      #E2E8F0;
-      --danger:      #C0392B;
-      --warning:     #D68910;
-      --shadow-sm:   0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
-      --shadow-md:   0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
-      --shadow-lg:   0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.08);
-      --radius-card: 12px;
-      --radius-btn:  8px;
-      --transition:  200ms ease;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>จองห้องประชุม — สำนักเทคโนโลยีชีวภัณฑ์สัตว์</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary:     #1B4F72;
+    --primary-dark:#163d58;
+    --secondary:   #2E86AB;
+    --accent:      #17A589;
+    --bg:          #F0F4F8;
+    --bg-alt:      #E8F0F7;
+    --surface:     #FFFFFF;
+    --surface-2:   #F8FAFC;
+    --text-dark:   #1A2332;
+    --text-mid:    #4A5568;
+    --text-light:  #718096;
+    --text-muted:  #A0AEC0;
+    --border:      #E2E8F0;
+    --danger:      #C0392B;
+    --warning:     #D68910;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-md:   0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
+    --shadow-lg:   0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.08);
+    --radius-card: 12px;
+    --radius-btn:  8px;
+    --transition:  160ms ease;
+    --row-h:       48px;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-dark);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  button { font-family: inherit; }
 
-    *, *::before, *::after { box-sizing: border-box; }
+  /* ============ APP SHELL ============ */
+  .app { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
-      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      color: var(--text-dark);
-    }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand__logo {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(27,79,114,.25);
+  }
+  .brand__text h1 { font-size: 16px; font-weight: 700; margin: 0; line-height: 1.3; }
+  .brand__text p  { font-size: 12px; color: var(--text-light); margin: 0; }
+  .admin-link {
+    font-size: 12px; color: var(--text-muted); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px;
+    background: var(--surface); white-space: nowrap;
+  }
+  .admin-link:hover { color: var(--primary); border-color: var(--primary); }
 
-    a { color: inherit; text-decoration: none; }
+  /* ============ BOOKER CARD ============ */
+  .booker-card {
+    background: var(--surface); border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm); padding: 14px 18px; margin-bottom: 16px;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  .booker-card .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 140px; }
+  .booker-card label { font-size: 11px; font-weight: 600; color: var(--text-light); }
+  .booker-card input {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: 13.5px; font-family: inherit; color: var(--text-dark);
+  }
+  .booker-card input:focus { outline: none; border-color: var(--secondary); }
+  .booker-hint { font-size: 11.5px; color: var(--text-muted); flex-basis: 100%; }
 
-    /* ==========================================
-       LAYOUT
-    ========================================== */
-    .page-wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px 60px;
-    }
+  /* ============ ROOM TABS ============ */
+  .room-tabs {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .room-tab {
+    flex: 0 0 auto; padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text-mid); font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; transition: all var(--transition);
+  }
+  .room-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .room-tab:not(.active):hover { border-color: var(--secondary); color: var(--primary); }
 
-    /* ==========================================
-       HEADER
-    ========================================== */
-    .header {
-      text-align: center;
-      margin-bottom: 48px;
-      max-width: 600px;
-      width: 100%;
-    }
+  /* ============ TOOLBAR ============ */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .nav-group { display: flex; align-items: center; gap: 6px; }
+  .nav-btn {
+    width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text-mid); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .nav-btn:hover { border-color: var(--secondary); color: var(--primary); }
+  .today-btn {
+    height: 32px; padding: 0 12px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text-mid); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  }
+  .today-btn:hover { border-color: var(--secondary); color: var(--primary); }
+  .period-label { font-size: 15px; font-weight: 700; color: var(--text-dark); margin: 0 4px; }
 
-    .logo {
-      width: 64px;
-      height: 64px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
-      box-shadow: 0 4px 12px rgba(27, 79, 114, 0.25);
-    }
+  .view-switch { display: flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .view-switch button {
+    border: none; background: transparent; padding: 7px 14px; font-size: 12.5px; font-weight: 600;
+    color: var(--text-mid); cursor: pointer; transition: all var(--transition);
+  }
+  .view-switch button.active { background: var(--primary); color: #fff; }
+  .view-switch button:not(.active):hover { background: var(--bg-alt); }
 
-    .header h1 {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin: 0 0 12px;
-      letter-spacing: -0.5px;
-      line-height: 1.2;
-    }
+  /* ============ CALENDAR CARD ============ */
+  .cal-card {
+    background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .cal-scroll { overflow-x: auto; }
 
-    .header p {
-      font-size: 15px;
-      color: var(--text-light);
-      margin: 0;
-      line-height: 1.6;
-    }
+  /* --- Day/Week grid --- */
+  .grid-head {
+    display: grid; border-bottom: 1.5px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 3;
+  }
+  .grid-head__cell {
+    padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-mid);
+    border-left: 1px solid var(--border);
+  }
+  .grid-head__cell small { display: block; font-weight: 500; color: var(--text-muted); font-size: 10.5px; margin-top: 2px; }
+  .grid-head__cell.is-today { color: var(--primary); background: #EBF5FB; }
+  .grid-head__corner { border-left: none; }
 
-    /* ==========================================
-       QUICK ACCESS CARDS
-    ========================================== */
-    .quick-access {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      max-width: 1100px;
-      width: 100%;
-      margin-bottom: 40px;
-    }
+  .grid-body { display: grid; position: relative; min-width: 560px; }
+  .time-gutter { position: relative; }
+  .time-gutter__label {
+    height: var(--row-h); font-size: 10.5px; color: var(--text-muted); text-align: right;
+    padding-right: 8px; transform: translateY(-6px); box-sizing: border-box;
+  }
+  .day-col {
+    position: relative; border-left: 1px solid var(--border); touch-action: none; user-select: none;
+  }
+  .hour-cell {
+    height: var(--row-h); border-bottom: 1px solid var(--border); box-sizing: border-box;
+    cursor: pointer;
+  }
+  .hour-cell:hover { background: var(--surface-2); }
+  .hour-cell.disabled { cursor: not-allowed; background: repeating-linear-gradient(45deg, #F8F9FA, #F8F9FA 6px, #F1F3F5 6px, #F1F3F5 12px); }
 
-    .access-card {
-      background: var(--surface);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
-      transition: transform var(--transition), box-shadow var(--transition);
-    }
+  .now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); z-index: 4; pointer-events: none; }
+  .now-line::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
 
-    .access-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-    }
+  .booking-block {
+    position: absolute; left: 3px; right: 3px; border-radius: 6px; padding: 4px 7px;
+    background: linear-gradient(135deg, var(--secondary), var(--primary)); color: #fff;
+    font-size: 11px; line-height: 1.35; overflow: hidden; cursor: pointer; z-index: 2;
+    box-shadow: 0 1px 4px rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.25);
+  }
+  .booking-block:hover { filter: brightness(1.08); }
+  .booking-block b { display: block; font-weight: 700; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .booking-block span { opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-    .access-card__header {
-      padding: 28px;
-      border-bottom: 1px solid var(--bg);
-    }
+  .selection-preview {
+    position: absolute; left: 3px; right: 3px; border-radius: 6px; z-index: 5;
+    background: rgba(23,165,137,.28); border: 2px dashed var(--accent); pointer-events: none;
+  }
+  .selection-preview.invalid { background: rgba(192,57,43,.22); border-color: var(--danger); }
 
-    .access-card__icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 14px;
-    }
+  /* --- Month view --- */
+  .month-head { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1.5px solid var(--border); }
+  .month-head div { padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-mid); }
+  .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .month-cell {
+    min-height: 88px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 6px; cursor: pointer; transition: background var(--transition);
+  }
+  .month-cell:hover { background: var(--surface-2); }
+  .month-cell.other-month { background: #FAFBFC; }
+  .month-cell.other-month .month-cell__num { color: var(--text-muted); }
+  .month-cell.is-today .month-cell__num {
+    background: var(--primary); color: #fff; border-radius: 50%;
+    width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .month-cell__num { font-size: 12.5px; font-weight: 600; color: var(--text-dark); }
+  .month-cell__list { margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
+  .month-badge {
+    font-size: 10px; padding: 2px 5px; border-radius: 4px; background: var(--bg-alt); color: var(--primary);
+    font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .month-more { font-size: 10px; color: var(--text-muted); font-weight: 600; }
 
-    .access-card__icon--user  { background: #EBF5FB; }
-    .access-card__icon--admin { background: #FEF3C7; }
+  /* ============ MODAL ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(20,30,40,.45); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg);
+    width: 100%; max-width: 420px; max-height: 92vh; overflow-y: auto;
+  }
+  .modal__header { padding: 18px 20px 4px; }
+  .modal__header h2 { font-size: 17px; margin: 0 0 4px; font-weight: 700; }
+  .modal__header p { font-size: 12.5px; color: var(--text-light); margin: 0; }
+  .modal__body { padding: 14px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .modal__field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 5px; }
+  .modal__field input, .modal__field select, .modal__field textarea {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 11px;
+    font-size: 13.5px; font-family: inherit; color: var(--text-dark);
+  }
+  .modal__field input:focus, .modal__field select:focus, .modal__field textarea:focus { outline: none; border-color: var(--secondary); }
+  .modal__row { display: flex; gap: 10px; }
+  .modal__row .modal__field { flex: 1; }
+  .modal__footer { padding: 14px 20px 20px; display: flex; gap: 10px; }
+  .btn {
+    flex: 1; border: none; border-radius: 9px; padding: 11px; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; transition: background var(--transition);
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; }
+  .btn-ghost { background: var(--surface-2); color: var(--text-mid); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg-alt); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #a5322a; }
+  .modal-error { font-size: 12.5px; color: var(--danger); background: #FDEDEC; border-radius: 8px; padding: 8px 11px; display: none; }
+  .modal-error.show { display: block; }
 
-    .access-card__header h3 {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin: 0 0 6px;
-    }
+  .detail-row { display: flex; gap: 10px; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .k { width: 88px; flex-shrink: 0; color: var(--text-muted); font-weight: 600; font-size: 12px; }
+  .detail-row .v { color: var(--text-dark); font-weight: 500; }
+  .status-pill { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #E8F8F3; color: var(--accent); }
 
-    .access-card__header p {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 0;
-      line-height: 1.5;
-    }
+  /* ============ TOAST ============ */
+  #toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text-dark); color: #fff; padding: 11px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 100;
+    opacity: 0; pointer-events: none; transition: all .25s ease;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { background: var(--danger); }
 
-    .access-card__body {
-      padding: 18px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+  .legend { display: flex; align-items: center; gap: 16px; padding: 10px 18px; font-size: 11.5px; color: var(--text-light); border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
-    /* Link-style button (outline) */
-    .btn-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      background: var(--surface-2);
-      border-radius: var(--radius-btn);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--primary);
-      border: 1px solid var(--border);
-      transition: background var(--transition), border-color var(--transition);
-      cursor: pointer;
-    }
-
-    .btn-link:hover {
-      background: #EBF5FB;
-      border-color: var(--primary);
-    }
-
-    /* Solid primary button */
-    .btn-primary {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      background: var(--primary);
-      border-radius: var(--radius-btn);
-      font-size: 13px;
-      font-weight: 600;
-      color: #FFFFFF;
-      border: none;
-      transition: background var(--transition);
-      cursor: pointer;
-    }
-
-    .btn-primary:hover { background: var(--primary-dark); }
-
-    .access-card__footer {
-      padding: 14px 28px;
-      background: var(--surface-2);
-      border-top: 1px solid var(--bg);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* ==========================================
-       ALL PAGES GRID
-    ========================================== */
-    .all-pages {
-      max-width: 1100px;
-      width: 100%;
-      margin-bottom: 48px;
-    }
-
-    .all-pages h2 {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin: 0 0 18px;
-    }
-
-    .pages-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .page-link {
-      padding: 14px 16px;
-      background: var(--surface);
-      border-radius: 10px;
-      border: 1.5px solid var(--border);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--primary);
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      white-space: nowrap;
-      transition: border-color var(--transition), background var(--transition);
-    }
-
-    .page-link:hover {
-      border-color: var(--primary);
-      background: #EBF5FB;
-    }
-
-    /* ==========================================
-       INFO SECTION
-    ========================================== */
-    .info-section {
-      max-width: 1100px;
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      padding: 28px;
-      background: var(--surface);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-md);
-    }
-
-    .info-block h3 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin: 0 0 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .info-block ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      font-size: 13px;
-      color: var(--text-light);
-      line-height: 1.9;
-    }
-
-    /* ==========================================
-       FOOTER
-    ========================================== */
-    .footer {
-      margin-top: 48px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 12px;
-    }
-
-    /* ==========================================
-       CHEVRON ICON (inline SVG helper)
-    ========================================== */
-    .chevron {
-      flex-shrink: 0;
-      opacity: 0.7;
-    }
-
-    /* ==========================================
-       RESPONSIVE — MOBILE < 768px
-    ========================================== */
-    @media (max-width: 767px) {
-      .page-wrapper { padding: 28px 16px 48px; }
-
-      .header { margin-bottom: 32px; }
-      .header h1 { font-size: 26px; }
-
-      /* Stack quick-access cards */
-      .quick-access { grid-template-columns: 1fr; }
-
-      /* 2-column page grid on mobile */
-      .pages-grid { grid-template-columns: repeat(2, 1fr); }
-
-      /* Stack info section */
-      .info-section { grid-template-columns: 1fr; gap: 20px; }
-
-      .access-card__body { padding: 14px 20px; }
-      .access-card__header { padding: 20px; }
-      .access-card__footer { padding: 12px 20px; }
-    }
-
-    /* TABLET: 768px – 1024px */
-    @media (min-width: 768px) and (max-width: 1024px) {
-      .pages-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-  </style>
+  @media (max-width: 640px) {
+    .app { padding: 14px 12px 44px; }
+    .period-label { font-size: 13.5px; }
+    .grid-body { min-width: 460px; }
+  }
+</style>
 </head>
-
 <body>
-  <div class="page-wrapper">
+  <div class="app">
 
-    <!-- ===== HEADER ===== -->
-    <header class="header">
-      <div class="logo">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <rect x="3" y="10" width="26" height="18" rx="2" fill="none" stroke="white" stroke-width="2"/>
-          <path d="M3 16h26" stroke="white" stroke-width="2"/>
-          <path d="M10 3v6M22 3v6" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand__logo">
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect x="3" y="10" width="26" height="18" rx="2" fill="none" stroke="white" stroke-width="2"/><path d="M3 16h26" stroke="white" stroke-width="2"/><path d="M10 3v6M22 3v6" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="brand__text">
+          <h1>จองห้องประชุม</h1>
+          <p>สำนักเทคโนโลยีชีวภัณฑ์สัตว์ — ไม่ต้องสมัครสมาชิก จองได้ทันที</p>
+        </div>
       </div>
-      <h1>ระบบจองห้องประชุมออนไลน์<br>สำนักเทคโนโลยีชีวภัณฑ์สัตว์</h1>
-      <p>By QA &amp; Friends</p>
-    </header>
+      <a href="login.html" class="admin-link">🔐 สำหรับผู้ดูแลระบบ</a>
+    </div>
 
-    <!-- ===== QUICK ACCESS CARDS ===== -->
-    <section class="quick-access" aria-label="Quick Access">
+    <div class="booker-card">
+      <div class="field">
+        <label for="bookerName">ชื่อ-นามสกุล ผู้จอง *</label>
+        <input id="bookerName" type="text" placeholder="เช่น สมชาย ใจดี" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="bookerDept">แผนก / หน่วยงาน</label>
+        <input id="bookerDept" type="text" placeholder="เช่น ฝ่ายบุคคล" autocomplete="off">
+      </div>
+      <div class="booker-hint">💡 กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้ — จากนั้นแค่ลากบนปฏิทินเพื่อจองห้องได้เลย</div>
+    </div>
 
-      <!-- User Flow -->
-      <div class="access-card">
-        <div class="access-card__header">
-          <div class="access-card__icon access-card__icon--user">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="8" r="4" stroke="#1B4F72" stroke-width="1.5"/>
-              <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#1B4F72" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
+    <div class="room-tabs" id="roomTabs"></div>
+
+    <div class="toolbar">
+      <div class="nav-group">
+        <button class="nav-btn" id="prevBtn" title="ก่อนหน้า">‹</button>
+        <button class="today-btn" id="todayBtn">วันนี้</button>
+        <button class="nav-btn" id="nextBtn" title="ถัดไป">›</button>
+        <span class="period-label" id="periodLabel">—</span>
+      </div>
+      <div class="view-switch" id="viewSwitch">
+        <button data-view="day">รายวัน</button>
+        <button data-view="week">รายสัปดาห์</button>
+        <button data-view="month">รายเดือน</button>
+      </div>
+    </div>
+
+    <div class="cal-card">
+      <div class="cal-scroll" id="calRoot"></div>
+      <div class="legend">
+        <span><i style="background:linear-gradient(135deg,#2E86AB,#1B4F72)"></i> มีการจองแล้ว</span>
+        <span><i style="background:rgba(23,165,137,.5);border:1px dashed #17A589"></i> ช่วงที่กำลังเลือก</span>
+        <span>⏱ เวลาให้บริการ 08:00–20:00 น. • จองทีละชั่วโมง</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== BOOKING FORM MODAL ===== -->
+  <div class="modal-overlay" id="bookModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2>ยืนยันการจองห้อง</h2>
+        <p id="bookSummary">—</p>
+      </div>
+      <div class="modal__body">
+        <div class="modal-error" id="bookError"></div>
+        <div class="modal__field">
+          <label>หัวข้อการประชุม *</label>
+          <input id="mTitle" type="text" placeholder="เช่น ประชุมทีมงานประจำสัปดาห์">
+        </div>
+        <div class="modal__row">
+          <div class="modal__field">
+            <label>เริ่ม</label>
+            <select id="mStart"></select>
           </div>
-          <h3>สำหรับผู้ใช้ทั่วไป</h3>
-          <p>จองห้องประชุม ดูปฏิทิน และจัดการรายการจองของคุณ</p>
-        </div>
-        <div class="access-card__body">
-          <a href="login.html" class="btn-link">
-            🔐 เข้าสู่ระบบ
-            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
-          <a href="dashboard.html" class="btn-primary">
-            📊 ภาพรวม Dashboard
-            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
-        </div>
-        <div class="access-card__footer">
-          • ปฏิทินการจอง &nbsp;• รายการของฉัน &nbsp;• โปรไฟล์
-        </div>
-      </div>
-
-      <!-- Admin Flow -->
-      <div class="access-card">
-        <div class="access-card__header">
-          <div class="access-card__icon access-card__icon--admin">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="9" cy="7" r="3" stroke="#D68910" stroke-width="1.5"/>
-              <path d="M3 21c0-3 2.239-5 6-5s6 2 6 5" stroke="#D68910" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M16 11h6M19 8v6" stroke="#D68910" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="modal__field">
+            <label>สิ้นสุด</label>
+            <select id="mEnd"></select>
           </div>
-          <h3>สำหรับผู้บริหารระบบ</h3>
-          <p>อนุมัติการจอง จัดการห้อง ผู้ใช้ และรายงาน</p>
         </div>
-        <div class="access-card__body">
-          <a href="login.html?role=admin" class="btn-link">
-            🔐 เข้าสู่ระบบ Admin
-            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
-          <a href="admin.html" class="btn-primary">
-            ⚙️ Admin Dashboard
-            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
-        </div>
-        <div class="access-card__footer">
-          • อนุมัติการจอง &nbsp;• จัดการห้อง &nbsp;• จัดการผู้ใช้ &nbsp;• รายงาน
+        <div class="modal__field">
+          <label>จำนวนผู้เข้าร่วม (โดยประมาณ)</label>
+          <input id="mAttendees" type="number" min="1" value="1">
         </div>
       </div>
-
-    </section>
-
-    <!-- ===== ALL PAGES GRID ===== -->
-    <section class="all-pages">
-      <h2>📄 หน้าทั้งหมด</h2>
-      <nav class="pages-grid" aria-label="All pages">
-        <a href="login.html"         class="page-link">🔐 Login</a>
-        <a href="login.html#register" class="page-link">📝 Register</a>
-        <a href="dashboard.html"     class="page-link">📊 Dashboard</a>
-        <a href="booking.html"       class="page-link">📅 Booking Form</a>
-        <a href="calendar.html"      class="page-link">📆 Calendar</a>
-        <a href="my-bookings.html"   class="page-link">📋 My Bookings</a>
-        <a href="reports.html"       class="page-link">📈 Reports</a>
-        <a href="profile.html"       class="page-link">👤 Profile</a>
-        <a href="admin.html"         class="page-link">⚙️ Admin</a>
-      </nav>
-    </section>
-
-    <!-- ===== INFO SECTION ===== -->
-    <section class="info-section" aria-label="System Information">
-      <div class="info-block">
-        <h3>✨ คุณสมบัติ</h3>
-        <ul>
-          <li>✓ จองห้องประชุมแบบเรียลไทม์</li>
-          <li>✓ ตรวจสอบความขัดแย้งการจอง</li>
-          <li>✓ ระบบอนุมัติโดยผู้ดูแล</li>
-          <li>✓ แจ้งเตือน Email อัตโนมัติ</li>
-          <li>✓ รายงานการใช้งาน</li>
-        </ul>
+      <div class="modal__footer">
+        <button class="btn btn-ghost" id="mCancel">ยกเลิก</button>
+        <button class="btn btn-primary" id="mSubmit">ยืนยันการจอง</button>
       </div>
-      <div class="info-block">
-        <h3>🛠️ เทคโนโลยี</h3>
-        <ul>
-          <li>✓ HTML5 + CSS3 + JavaScript</li>
-          <li>✓ Node.js + Express Backend</li>
-          <li>✓ MongoDB Database</li>
-          <li>✓ JWT Authentication</li>
-          <li>✓ Responsive Design</li>
-        </ul>
-      </div>
-      <div class="info-block">
-        <h3>📊 สถิติระบบ</h3>
-        <ul>
-          <li>✓ 12 ห้องประชุม</li>
-          <li>✓ 48 ผู้ใช้ทั่วไป</li>
-          <li>✓ 156 การจองต่อเดือน</li>
-          <li>✓ 91% อัตราสำเร็จ</li>
-        </ul>
-      </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- ===== FOOTER ===== -->
-    <footer class="footer">
-      <p>ระบบจองห้องประชุม &copy; 2567 &nbsp;•&nbsp; สำนักเทคโนโลยีชีวภัณฑ์สัตว์</p>
-    </footer>
+  <!-- ===== BOOKING DETAIL MODAL ===== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 id="dTitle">รายละเอียดการจอง</h2>
+        <p><span class="status-pill">จองแล้ว</span></p>
+      </div>
+      <div class="modal__body" id="dBody"></div>
+      <div class="modal__footer">
+        <button class="btn btn-ghost" id="dClose">ปิด</button>
+        <button class="btn btn-danger" id="dCancelBooking">ยกเลิกการจองนี้</button>
+      </div>
+    </div>
+  </div>
 
-  </div><!-- /.page-wrapper -->
+  <div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============ CONFIG ============ */
+  var BUSINESS_START = 8;   // 08:00
+  var BUSINESS_END   = 20;  // 20:00 (exclusive)
+  var ROW_H = 48;
+  var DAY_NAMES_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  var MONTH_NAMES_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+  /* ============ STATE ============ */
+  var state = {
+    rooms: [],
+    roomId: null,
+    view: 'week',
+    date: new Date(),          // anchor date
+    bookings: [],               // bookings for currently loaded range
+    dragging: null,
+    pendingSlot: null,
+    activeBooking: null
+  };
+
+  /* ============ HELPERS ============ */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function parseDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function sameDay(a, b) { return fmtDate(a) === fmtDate(b); }
+  function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return r; }
+  function startOfWeek(d) { var r = new Date(d); var day = (r.getDay() + 6) % 7; r.setDate(r.getDate() - day); r.setHours(0,0,0,0); return r; }
+  function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function timeToMinutes(t) { var p = t.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function minutesToTime(m) { return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); }
+
+  function toast(msg, isErr) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = isErr ? 'show err' : 'show';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.className = ''; }, 3200);
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+        return data;
+      });
+    });
+  }
+
+  /* ============ BOOKER PERSISTENCE ============ */
+  function loadBooker() {
+    try {
+      var raw = localStorage.getItem('dld_booker');
+      if (raw) {
+        var b = JSON.parse(raw);
+        document.getElementById('bookerName').value = b.name || '';
+        document.getElementById('bookerDept').value = b.dept || '';
+      }
+    } catch (e) {}
+  }
+  function saveBooker() {
+    try {
+      localStorage.setItem('dld_booker', JSON.stringify({
+        name: document.getElementById('bookerName').value.trim(),
+        dept: document.getElementById('bookerDept').value.trim()
+      }));
+    } catch (e) {}
+  }
+
+  /* ============ ROOMS ============ */
+  function loadRooms() {
+    return api('/api/public/rooms').then(function (rooms) {
+      state.rooms = rooms;
+      if (!state.roomId && rooms.length) state.roomId = rooms[0]._id;
+      renderRoomTabs();
+    }).catch(function (e) { toast('โหลดรายชื่อห้องไม่สำเร็จ: ' + e.message, true); });
+  }
+
+  function renderRoomTabs() {
+    var wrap = document.getElementById('roomTabs');
+    wrap.innerHTML = '';
+    state.rooms.forEach(function (room) {
+      var btn = document.createElement('button');
+      btn.className = 'room-tab' + (room._id === state.roomId ? ' active' : '');
+      btn.textContent = room.name + ' · ' + room.capacity + ' ที่นั่ง';
+      btn.onclick = function () { state.roomId = room._id; renderRoomTabs(); refresh(); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  /* ============ RANGE FOR CURRENT VIEW ============ */
+  function currentRange() {
+    if (state.view === 'day') {
+      return { start: state.date, end: state.date };
+    }
+    if (state.view === 'week') {
+      var ws = startOfWeek(state.date);
+      return { start: ws, end: addDays(ws, 6) };
+    }
+    // month: pad to full weeks shown in grid
+    var first = startOfMonth(state.date);
+    var gridStart = startOfWeek(first);
+    var next = new Date(state.date.getFullYear(), state.date.getMonth() + 1, 1);
+    var last = addDays(next, -1);
+    var gridEnd = addDays(startOfWeek(last), 6);
+    return { start: gridStart, end: gridEnd };
+  }
+
+  function loadBookings() {
+    if (!state.roomId) return Promise.resolve();
+    var range = currentRange();
+    var qs = '?room=' + encodeURIComponent(state.roomId) + '&start=' + fmtDate(range.start) + '&end=' + fmtDate(range.end);
+    return api('/api/public/bookings' + qs).then(function (bookings) {
+      state.bookings = bookings;
+    }).catch(function (e) { toast('โหลดข้อมูลการจองไม่สำเร็จ: ' + e.message, true); });
+  }
+
+  function bookingsOn(dateStr) {
+    return state.bookings.filter(function (b) { return b.date === dateStr; });
+  }
+
+  /* ============ RENDER: TOOLBAR LABEL ============ */
+  function renderPeriodLabel() {
+    var label = document.getElementById('periodLabel');
+    if (state.view === 'day') {
+      label.textContent = state.date.getDate() + ' ' + MONTH_NAMES_TH[state.date.getMonth()] + ' ' + (state.date.getFullYear() + 543);
+    } else if (state.view === 'week') {
+      var ws = startOfWeek(state.date), we = addDays(ws, 6);
+      if (ws.getMonth() === we.getMonth()) {
+        label.textContent = ws.getDate() + '–' + we.getDate() + ' ' + MONTH_NAMES_TH[ws.getMonth()] + ' ' + (ws.getFullYear() + 543);
+      } else {
+        label.textContent = ws.getDate() + ' ' + MONTH_NAMES_TH[ws.getMonth()] + ' – ' + we.getDate() + ' ' + MONTH_NAMES_TH[we.getMonth()] + ' ' + (we.getFullYear() + 543);
+      }
+    } else {
+      label.textContent = MONTH_NAMES_TH[state.date.getMonth()] + ' ' + (state.date.getFullYear() + 543);
+    }
+  }
+
+  /* ============ RENDER: DAY / WEEK GRID ============ */
+  function buildTimeGutter() {
+    var gutter = document.createElement('div');
+    gutter.className = 'time-gutter';
+    for (var h = BUSINESS_START; h < BUSINESS_END; h++) {
+      var lab = document.createElement('div');
+      lab.className = 'time-gutter__label';
+      lab.textContent = pad2(h) + ':00';
+      gutter.appendChild(lab);
+    }
+    return gutter;
+  }
+
+  function buildDayColumn(date) {
+    var col = document.createElement('div');
+    col.className = 'day-col';
+    col.dataset.date = fmtDate(date);
+    col.style.height = ((BUSINESS_END - BUSINESS_START) * ROW_H) + 'px';
+
+    var dateStr = fmtDate(date);
+    var dayBookings = bookingsOn(dateStr);
+
+    for (var h = BUSINESS_START; h < BUSINESS_END; h++) {
+      var cell = document.createElement('div');
+      cell.className = 'hour-cell';
+      cell.dataset.hour = h;
+      col.appendChild(cell);
+    }
+
+    dayBookings.forEach(function (b) {
+      var top = (timeToMinutes(b.startTime) / 60 - BUSINESS_START) * ROW_H;
+      var height = (timeToMinutes(b.endTime) - timeToMinutes(b.startTime)) / 60 * ROW_H;
+      var block = document.createElement('div');
+      block.className = 'booking-block';
+      block.style.top = top + 'px';
+      block.style.height = Math.max(height - 3, 20) + 'px';
+      block.innerHTML = '<b>' + escapeHtml(b.title) + '</b><span>' + b.startTime + '–' + b.endTime + ' · ' + escapeHtml(b.bookerName || '') + '</span>';
+      block.onclick = function (bk) { return function (ev) { ev.stopPropagation(); openDetail(bk); }; }(b);
+      col.appendChild(block);
+    });
+
+    if (sameDay(date, new Date())) {
+      var now = new Date();
+      var nowMin = now.getHours() * 60 + now.getMinutes();
+      if (nowMin >= BUSINESS_START * 60 && nowMin <= BUSINESS_END * 60) {
+        var line = document.createElement('div');
+        line.className = 'now-line';
+        line.style.top = ((nowMin / 60 - BUSINESS_START) * ROW_H) + 'px';
+        col.appendChild(line);
+      }
+    }
+
+    attachDrag(col, date);
+    return col;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  function renderDayOrWeek() {
+    var root = document.getElementById('calRoot');
+    root.innerHTML = '';
+
+    var days = state.view === 'day' ? [state.date] : (function () {
+      var ws = startOfWeek(state.date), arr = [];
+      for (var i = 0; i < 7; i++) arr.push(addDays(ws, i));
+      return arr;
+    })();
+
+    var cols = 56 + 'px repeat(' + days.length + ', 1fr)';
+
+    var head = document.createElement('div');
+    head.className = 'grid-head';
+    head.style.gridTemplateColumns = cols;
+    var corner = document.createElement('div');
+    corner.className = 'grid-head__cell grid-head__corner';
+    head.appendChild(corner);
+    days.forEach(function (d) {
+      var c = document.createElement('div');
+      c.className = 'grid-head__cell' + (sameDay(d, new Date()) ? ' is-today' : '');
+      c.innerHTML = DAY_NAMES_TH[d.getDay()] + '<small>' + d.getDate() + ' ' + MONTH_NAMES_TH[d.getMonth()].slice(0,3) + '</small>';
+      head.appendChild(c);
+    });
+    root.appendChild(head);
+
+    var body = document.createElement('div');
+    body.className = 'grid-body';
+    body.style.gridTemplateColumns = cols;
+    body.appendChild(buildTimeGutter());
+    days.forEach(function (d) { body.appendChild(buildDayColumn(d)); });
+    root.appendChild(body);
+  }
+
+  /* ============ DRAG-TO-SELECT ============ */
+  function attachDrag(col, date) {
+    var startHour = null, preview = null;
+
+    function hourFromEvent(ev) {
+      var rect = col.getBoundingClientRect();
+      var y = (ev.clientY !== undefined ? ev.clientY : ev.touches[0].clientY) - rect.top;
+      var h = BUSINESS_START + Math.floor(y / ROW_H);
+      return Math.max(BUSINESS_START, Math.min(BUSINESS_END - 1, h));
+    }
+
+    function rangeHasConflict(h1, h2) {
+      var s = h1 * 60, e = (h2 + 1) * 60;
+      return bookingsOn(fmtDate(date)).some(function (b) {
+        return timeToMinutes(b.startTime) < e && timeToMinutes(b.endTime) > s;
+      });
+    }
+
+    function updatePreview(h1, h2) {
+      var lo = Math.min(h1, h2), hi = Math.max(h1, h2);
+      if (!preview) {
+        preview = document.createElement('div');
+        preview.className = 'selection-preview';
+        col.appendChild(preview);
+      }
+      var invalid = rangeHasConflict(lo, hi);
+      preview.classList.toggle('invalid', invalid);
+      preview.style.top = ((lo - BUSINESS_START) * ROW_H) + 'px';
+      preview.style.height = ((hi - lo + 1) * ROW_H - 3) + 'px';
+      preview.dataset.invalid = invalid ? '1' : '';
+    }
+
+    function onDown(ev) {
+      if (ev.target !== col && !ev.target.classList.contains('hour-cell')) return;
+      var h = hourFromEvent(ev);
+      if (rangeHasConflict(h, h)) return; // starting on an occupied hour: ignore drag
+      startHour = h;
+      updatePreview(h, h);
+      col.setPointerCapture && ev.pointerId !== undefined && col.setPointerCapture(ev.pointerId);
+      state.dragging = { col: col, date: date };
+    }
+    function onMove(ev) {
+      if (startHour === null) return;
+      var h = hourFromEvent(ev);
+      updatePreview(startHour, h);
+    }
+    function onUp(ev) {
+      if (startHour === null) return;
+      var h = hourFromEvent(ev);
+      var lo = Math.min(startHour, h), hi = Math.max(startHour, h);
+      var invalid = preview && preview.dataset.invalid === '1';
+      if (preview) { preview.remove(); preview = null; }
+      startHour = null;
+      state.dragging = null;
+      if (invalid) { toast('ช่วงเวลานี้ทับกับการจองที่มีอยู่แล้ว', true); return; }
+      openBookingModal(date, lo, hi + 1);
+    }
+
+    col.addEventListener('pointerdown', onDown);
+    col.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  /* ============ RENDER: MONTH ============ */
+  function renderMonth() {
+    var root = document.getElementById('calRoot');
+    root.innerHTML = '';
+
+    var head = document.createElement('div');
+    head.className = 'month-head';
+    DAY_NAMES_TH.slice(1).concat(DAY_NAMES_TH[0]).forEach(function (n) {
+      var d = document.createElement('div'); d.textContent = n; head.appendChild(d);
+    });
+    root.appendChild(head);
+
+    var grid = document.createElement('div');
+    grid.className = 'month-grid';
+    var range = currentRange();
+    var cursor = new Date(range.start);
+    var todayStr = fmtDate(new Date());
+
+    while (cursor <= range.end) {
+      (function (d) {
+        var cell = document.createElement('div');
+        var inMonth = d.getMonth() === state.date.getMonth();
+        cell.className = 'month-cell' + (inMonth ? '' : ' other-month') + (fmtDate(d) === todayStr ? ' is-today' : '');
+        var num = document.createElement('div');
+        num.className = 'month-cell__num';
+        num.textContent = d.getDate();
+        cell.appendChild(num);
+
+        var list = document.createElement('div');
+        list.className = 'month-cell__list';
+        var dayBookings = bookingsOn(fmtDate(d));
+        dayBookings.slice(0, 3).forEach(function (b) {
+          var badge = document.createElement('div');
+          badge.className = 'month-badge';
+          badge.textContent = b.startTime + ' ' + b.title;
+          list.appendChild(badge);
+        });
+        if (dayBookings.length > 3) {
+          var more = document.createElement('div');
+          more.className = 'month-more';
+          more.textContent = '+' + (dayBookings.length - 3) + ' อื่นๆ';
+          list.appendChild(more);
+        }
+        cell.appendChild(list);
+
+        cell.onclick = function () { state.date = d; state.view = 'day'; syncViewButtons(); refresh(); };
+        grid.appendChild(cell);
+      })(new Date(cursor));
+      cursor = addDays(cursor, 1);
+    }
+    root.appendChild(grid);
+  }
+
+  /* ============ BOOKING MODAL ============ */
+  function fillTimeSelect(sel, excludeHour) {
+    sel.innerHTML = '';
+    for (var h = BUSINESS_START; h <= BUSINESS_END; h++) {
+      var opt = document.createElement('option');
+      opt.value = pad2(h) + ':00';
+      opt.textContent = pad2(h) + ':00';
+      sel.appendChild(opt);
+    }
+  }
+
+  function openBookingModal(date, startHour, endHour) {
+    var bookerName = document.getElementById('bookerName').value.trim();
+    if (!bookerName) {
+      toast('กรุณากรอกชื่อ-นามสกุลผู้จองก่อน (ด้านบน)', true);
+      document.getElementById('bookerName').focus();
+      return;
+    }
+    state.pendingSlot = { date: date, startHour: startHour, endHour: endHour };
+
+    var mStart = document.getElementById('mStart'), mEnd = document.getElementById('mEnd');
+    fillTimeSelect(mStart); fillTimeSelect(mEnd);
+    mStart.value = pad2(startHour) + ':00';
+    mEnd.value = pad2(endHour) + ':00';
+
+    var room = state.rooms.find(function (r) { return r._id === state.roomId; });
+    document.getElementById('bookSummary').textContent =
+      (room ? room.name : '') + ' · ' + date.getDate() + ' ' + MONTH_NAMES_TH[date.getMonth()] + ' ' + (date.getFullYear() + 543);
+
+    document.getElementById('mTitle').value = '';
+    document.getElementById('mAttendees').value = 1;
+    document.getElementById('bookError').classList.remove('show');
+    document.getElementById('bookModal').classList.add('open');
+  }
+
+  function closeBookingModal() { document.getElementById('bookModal').classList.remove('open'); }
+
+  function submitBooking() {
+    var slot = state.pendingSlot;
+    if (!slot) return;
+    var title = document.getElementById('mTitle').value.trim();
+    var start = document.getElementById('mStart').value;
+    var end = document.getElementById('mEnd').value;
+    var attendees = parseInt(document.getElementById('mAttendees').value, 10) || 1;
+    var errEl = document.getElementById('bookError');
+
+    if (!title) { errEl.textContent = 'กรุณากรอกหัวข้อการประชุม'; errEl.classList.add('show'); return; }
+    if (start >= end) { errEl.textContent = 'เวลาเริ่มต้นต้องก่อนเวลาสิ้นสุด'; errEl.classList.add('show'); return; }
+
+    saveBooker();
+    var btn = document.getElementById('mSubmit');
+    btn.disabled = true; btn.textContent = 'กำลังจอง...';
+
+    api('/api/public/bookings', {
+      method: 'POST',
+      body: {
+        room: state.roomId,
+        bookerName: document.getElementById('bookerName').value.trim(),
+        bookerDepartment: document.getElementById('bookerDept').value.trim(),
+        title: title,
+        date: fmtDate(slot.date),
+        startTime: start,
+        endTime: end,
+        attendees: attendees
+      }
+    }).then(function () {
+      closeBookingModal();
+      toast('จองห้องสำเร็จ ✓');
+      return refresh();
+    }).catch(function (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = 'ยืนยันการจอง';
+    });
+  }
+
+  /* ============ DETAIL / CANCEL MODAL ============ */
+  function openDetail(b) {
+    state.activeBooking = b;
+    document.getElementById('dTitle').textContent = b.title;
+    var room = state.rooms.find(function (r) { return r._id === state.roomId; });
+    document.getElementById('dBody').innerHTML =
+      row('ห้อง', room ? room.name : '') +
+      row('วันที่', b.date) +
+      row('เวลา', b.startTime + ' – ' + b.endTime + ' น.') +
+      row('ผู้จอง', b.bookerName || '-') +
+      row('แผนก', b.bookerDepartment || '-') +
+      row('ผู้เข้าร่วม', (b.attendees || 1) + ' คน');
+    document.getElementById('detailModal').classList.add('open');
+  }
+  function row(k, v) {
+    return '<div class="detail-row"><div class="k">' + k + '</div><div class="v">' + escapeHtml(v) + '</div></div>';
+  }
+  function closeDetail() { document.getElementById('detailModal').classList.remove('open'); }
+
+  function cancelActiveBooking() {
+    var b = state.activeBooking;
+    if (!b) return;
+    if (!confirm('ยืนยันยกเลิกการจอง "' + b.title + '" โดย ' + (b.bookerName || '') + ' ใช่หรือไม่?')) return;
+    api('/api/public/bookings/' + b._id + '/cancel', { method: 'PUT', body: { bookerName: b.bookerName } })
+      .then(function () {
+        closeDetail();
+        toast('ยกเลิกการจองสำเร็จ');
+        return refresh();
+      })
+      .catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ============ VIEW / NAV CONTROLS ============ */
+  function syncViewButtons() {
+    var btns = document.querySelectorAll('#viewSwitch button');
+    btns.forEach(function (b) { b.classList.toggle('active', b.dataset.view === state.view); });
+  }
+
+  function navPrev() {
+    if (state.view === 'day') state.date = addDays(state.date, -1);
+    else if (state.view === 'week') state.date = addDays(state.date, -7);
+    else state.date = new Date(state.date.getFullYear(), state.date.getMonth() - 1, 1);
+    refresh();
+  }
+  function navNext() {
+    if (state.view === 'day') state.date = addDays(state.date, 1);
+    else if (state.view === 'week') state.date = addDays(state.date, 7);
+    else state.date = new Date(state.date.getFullYear(), state.date.getMonth() + 1, 1);
+    refresh();
+  }
+  function navToday() { state.date = new Date(); refresh(); }
+
+  /* ============ MAIN REFRESH ============ */
+  function refresh() {
+    renderPeriodLabel();
+    return loadBookings().then(function () {
+      if (state.view === 'month') renderMonth();
+      else renderDayOrWeek();
+    });
+  }
+
+  /* ============ INIT ============ */
+  function init() {
+    loadBooker();
+    syncViewButtons();
+
+    document.getElementById('prevBtn').onclick = navPrev;
+    document.getElementById('nextBtn').onclick = navNext;
+    document.getElementById('todayBtn').onclick = navToday;
+    document.querySelectorAll('#viewSwitch button').forEach(function (b) {
+      b.onclick = function () { state.view = b.dataset.view; syncViewButtons(); refresh(); };
+    });
+
+    document.getElementById('mCancel').onclick = closeBookingModal;
+    document.getElementById('mSubmit').onclick = submitBooking;
+    document.getElementById('bookModal').addEventListener('click', function (e) { if (e.target === this) closeBookingModal(); });
+
+    document.getElementById('dClose').onclick = closeDetail;
+    document.getElementById('dCancelBooking').onclick = cancelActiveBooking;
+    document.getElementById('detailModal').addEventListener('click', function (e) { if (e.target === this) closeDetail(); });
+
+    document.getElementById('bookerName').addEventListener('change', saveBooker);
+    document.getElementById('bookerDept').addEventListener('change', saveBooker);
+
+    loadRooms().then(refresh);
+
+    // auto-refresh every 30s so front-desk / housekeeping views stay in sync
+    setInterval(function () {
+      if (document.visibilityState === 'visible' && !document.getElementById('bookModal').classList.contains('open')) {
+        loadBookings().then(function () {
+          if (state.view === 'month') renderMonth(); else renderDayOrWeek();
+        });
+      }
+    }, 30000);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
 </body>
 </html>

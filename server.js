@@ -90,9 +90,14 @@ var RoomSchema = new mongoose.Schema({
 
 var Room = mongoose.model('Room', RoomSchema);
 
-/* ── Booking ─── */
+/* ── Booking ───
+ * NOTE: การจองแบบ "walk-up" (ไม่ต้อง login) จะไม่มี user แต่จะเก็บ
+ * bookerName / bookerDepartment แทน เพื่อให้แม่บ้าน/ผู้ดูแลห้องรู้ว่าใครจอง
+ */
 var BookingSchema = new mongoose.Schema({
-  user:          { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user:          { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // optional (walk-up booking ไม่มี user)
+  bookerName:       { type: String, default: '' },  // ชื่อ-นามสกุล ผู้จอง (walk-up)
+  bookerDepartment: { type: String, default: '' },  // แผนก ผู้จอง (walk-up)
   room:          { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
   title:         { type: String, required: true },
   purpose:       { type: String, default: '' },
@@ -105,6 +110,11 @@ var BookingSchema = new mongoose.Schema({
   approvedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt:    { type: Date }
 }, { timestamps: true });
+
+/* Virtual — display name regardless of walk-up or logged-in booking */
+BookingSchema.virtual('displayName').get(function () {
+  return this.bookerName || '';
+});
 
 var Booking = mongoose.model('Booking', BookingSchema);
 
@@ -402,6 +412,111 @@ app.delete('/api/rooms/:id', adminRequired, async function (req, res) {
     var room = await Room.findByIdAndDelete(req.params.id);
     if (!room) return res.status(404).json({ error: 'ไม่พบห้องประชุม' });
     res.json({ message: 'ลบห้องประชุมสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* ─────────────────────────────────────────────────────
+   ROUTES — PUBLIC (Walk-up booking, ไม่ต้อง login)
+   GET  /api/public/rooms
+   GET  /api/public/bookings?room=&start=&end=
+   POST /api/public/bookings   (ยืนยันทันที ไม่ต้องรออนุมัติ)
+   PUT  /api/public/bookings/:id/cancel
+───────────────────────────────────────────────────── */
+
+/* รายชื่อห้องที่เปิดให้บริการ (ไม่ต้อง login) */
+app.get('/api/public/rooms', async function (req, res) {
+  try {
+    var rooms = await Room.find({ status: 'active' }).sort({ name: 1 });
+    res.json(rooms);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* ดึงรายการจองของห้อง ในช่วงวันที่ที่กำหนด สำหรับแสดงบนปฏิทิน (ไม่ต้อง login) */
+app.get('/api/public/bookings', async function (req, res) {
+  try {
+    var { room, start, end } = req.query;
+    if (!room) return res.status(400).json({ error: 'กรุณาระบุห้องประชุม' });
+
+    var filter = { room: room, status: { $in: ['pending', 'approved'] } };
+    if (start && end) filter.date = { $gte: start, $lte: end };
+    else if (start)   filter.date = { $gte: start };
+
+    var bookings = await Booking.find(filter)
+      .select('room title date startTime endTime attendees bookerName bookerDepartment status')
+      .sort({ date: 1, startTime: 1 });
+
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* จองห้อง แบบ walk-up — ไม่ต้อง login ยืนยันทันที */
+app.post('/api/public/bookings', async function (req, res) {
+  try {
+    var { room, bookerName, bookerDepartment, title, date, startTime, endTime, attendees } = req.body;
+
+    if (!room || !bookerName || !bookerName.trim() || !title || !title.trim() || !date || !startTime || !endTime)
+      return res.status(400).json({ error: 'กรุณากรอกข้อมูลการจองให้ครบถ้วน (ชื่อ-นามสกุล, หัวข้อ, วันเวลา)' });
+    if (startTime >= endTime)
+      return res.status(400).json({ error: 'เวลาเริ่มต้นต้องก่อนเวลาสิ้นสุด' });
+
+    var roomDoc = await Room.findById(room);
+    if (!roomDoc) return res.status(404).json({ error: 'ไม่พบห้องประชุม' });
+    if (roomDoc.status !== 'active')
+      return res.status(409).json({ error: 'ห้องประชุมนี้ไม่พร้อมให้บริการ' });
+
+    if (attendees && attendees > roomDoc.capacity)
+      return res.status(409).json({ error: 'จำนวนผู้เข้าร่วมเกินความจุห้อง (' + roomDoc.capacity + ' คน)' });
+
+    /* ตรวจสอบเวลาซ้อนทับ */
+    var conflict = await Booking.findOne({
+      room: room, date: date,
+      status: { $in: ['pending', 'approved'] },
+      startTime: { $lt: endTime }, endTime: { $gt: startTime }
+    });
+    if (conflict)
+      return res.status(409).json({ error: 'ช่วงเวลานี้ห้องประชุมถูกจองไว้แล้ว' });
+
+    var booking = await Booking.create({
+      room: room,
+      bookerName: bookerName.trim(),
+      bookerDepartment: (bookerDepartment || '').trim(),
+      title: title.trim(),
+      purpose: (req.body.purpose || '').trim(),
+      date: date, startTime: startTime, endTime: endTime,
+      attendees: attendees || 1,
+      status: 'approved',        // walk-up booking ยืนยันทันที ไม่ต้องรออนุมัติ
+      approvedAt: new Date()
+    });
+    await booking.populate('room', 'name location');
+    res.status(201).json(booking);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
+  }
+});
+
+/* ยกเลิกการจอง walk-up — ต้องระบุชื่อผู้จองตรงกันเพื่อกันคนอื่นมายกเลิกมั่ว */
+app.put('/api/public/bookings/:id/cancel', async function (req, res) {
+  try {
+    var booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ error: 'ไม่พบการจอง' });
+    if (!['pending', 'approved'].includes(booking.status))
+      return res.status(409).json({ error: 'ไม่สามารถยกเลิกการจองที่มีสถานะ ' + booking.status + ' ได้' });
+
+    var { bookerName } = req.body;
+    if (booking.bookerName && (!bookerName || bookerName.trim() !== booking.bookerName))
+      return res.status(403).json({ error: 'กรุณายืนยันชื่อผู้จองให้ตรงกับตอนที่จองไว้' });
+
+    booking.status = 'cancelled';
+    await booking.save();
+    res.json({ message: 'ยกเลิกการจองสำเร็จ', booking });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในระบบ' });
   }
@@ -863,7 +978,7 @@ app.post('/api/seed', async function (req, res) {
    CATCH-ALL — serve frontend
 ───────────────────────────────────────────────────── */
 app.get('*', function (req, res) {
-  res.sendFile(path.join(__dirname, 'login.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 /* ── Global error handler ── */
