@@ -1176,7 +1176,7 @@
     selectedRoom   : '',
     selectedDate   : '',
     bookingType    : 'hourly',
-    startHour      : 9,
+    startMinutes   : 9 * 60,
     meetingTitle   : '',
     purpose        : '',
     attendeeCount  : '',
@@ -1240,12 +1240,17 @@
   };
 
   /* ── Domain helpers ──────────────────────────────────────── */
+  /* หมายเหตุ: ทุกช่วงเวลาในไฟล์นี้นับเป็น "นาทีนับจากเที่ยงคืน" (เช่น 8:00 = 480)
+     เพื่อให้รองรับการจองละเอียดถึงครึ่งชั่วโมง เหมือนกับหน้าจองหลัก (index.html) */
+  var SLOT_MIN = 30;
+
   function getRange () {
-    var h = parseInt(state.startHour) || 9;
-    if (state.bookingType === 'morning')   return { s: 8,  e: 12 };
-    if (state.bookingType === 'afternoon') return { s: 13, e: 17 };
-    if (state.bookingType === '2hour')     return { s: h,  e: h + 2 };
-    return { s: h, e: h + 1 };
+    var m = parseInt(state.startMinutes, 10);
+    if (isNaN(m)) m = 9 * 60;
+    if (state.bookingType === 'morning')   return { s: 8 * 60,  e: 12 * 60 };
+    if (state.bookingType === 'afternoon') return { s: 13 * 60, e: 17 * 60 };
+    if (state.bookingType === '2hour')     return { s: m, e: m + 120 };
+    return { s: m, e: m + 60 };
   }
 
   function getBooked (room, date) {
@@ -1259,7 +1264,12 @@
     });
   }
 
-  function pad (h) { return String(h).padStart(2, '0') + ':00'; }
+  /* pad(m) รับ "นาทีนับจากเที่ยงคืน" คืนค่ารูปแบบ HH:MM (เช่น 510 → "08:30") */
+  function pad (m) {
+    var h  = Math.floor(m / 60);
+    var mi = m % 60;
+    return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+  }
 
   function fmtDate (d) {
     if (!d) return '—';
@@ -1306,23 +1316,23 @@
     var showTp = s.bookingType === 'hourly' || s.bookingType === '2hour';
     $('time-picker-wrap').style.display = showTp ? '' : 'none';
 
-    /* ── Rebuild time options ── */
-    var maxH = s.bookingType === '2hour' ? 15 : 16;
+    /* ── Rebuild time options (ทีละ 30 นาที) ── */
+    var maxM = (s.bookingType === '2hour' ? 15 : 16) * 60;
     var sel  = $('f-start');
     var needRebuild = sel.options.length === 0 ||
-      parseInt(sel.options[sel.options.length - 1].value) !== maxH;
+      parseInt(sel.options[sel.options.length - 1].value) !== maxM;
     if (needRebuild) {
       sel.innerHTML = '';
-      for (var h = 8; h <= maxH; h++) {
+      for (var m = 8 * 60; m <= maxM; m += SLOT_MIN) {
         var opt = document.createElement('option');
-        opt.value = String(h);
-        opt.textContent = pad(h);
+        opt.value = String(m);
+        opt.textContent = pad(m);
         sel.appendChild(opt);
       }
     }
-    /* Clamp startHour */
-    if (s.startHour > maxH) state.startHour = maxH;
-    sel.value = String(state.startHour);
+    /* Clamp startMinutes */
+    if (s.startMinutes > maxM) state.startMinutes = maxM;
+    sel.value = String(state.startMinutes);
 
     /* ── Time display chip ── */
     $('display-start').textContent = pad(range.s);
@@ -1599,7 +1609,8 @@
   });
 
   $('f-start').addEventListener('change', function (e) {
-    state.startHour = parseInt(e.target.value) || 9;
+    var v = parseInt(e.target.value, 10);
+    state.startMinutes = isNaN(v) ? (9 * 60) : v;
     updateUI();
   });
 
@@ -1638,7 +1649,7 @@
     state.selectedRoom    = '';
     state.selectedDate    = '';
     state.bookingType     = 'hourly';
-    state.startHour       = 9;
+    state.startMinutes    = 9 * 60;
     state.meetingTitle    = '';
     state.purpose         = '';
     state.attendeeCount   = '';
@@ -1760,8 +1771,8 @@
           title:     state.meetingTitle,
           purpose:   $('f-purpose') ? $('f-purpose').value.trim() : '',
           date:      state.selectedDate,
-          startTime: pad(range.s) + ':00',
-          endTime:   pad(range.e) + ':00',
+          startTime: pad(range.s),
+          endTime:   pad(range.e),
           attendees: parseInt(state.attendeeCount, 10) || 1
         };
 
