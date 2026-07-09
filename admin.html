@@ -16,6 +16,7 @@
       --secondary:    #2E86AB;
       --accent:       #17A589;
       --bg:           #F0F4F8;
+      --bg-alt:       #E8F0F7;
       --surface:      #FFFFFF;
       --surface-2:    #F8FAFC;
       --text-dark:    #1A2332;
@@ -27,14 +28,15 @@
       --warning:      #D68910;
       --radius:       12px;
       --radius-sm:    8px;
-      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-md:    0 4px 16px rgba(0,0,0,.1);
-      --transition:   0.2s ease;
+      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-md:    0 2px 8px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.04);
+      --shadow-lg:    0 4px 12px rgba(0,0,0,.12), 0 12px 32px rgba(0,0,0,.08);
+      --transition:   160ms ease;
     }
 
     body {
       font-family: 'Geist', sans-serif;
-      background: var(--bg);
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
       color: var(--text-dark);
       min-height: 100vh;
       display: flex;
@@ -394,7 +396,7 @@
     .modal-backdrop.open { display: flex; }
     .modal {
       background: var(--surface); border-radius: var(--radius);
-      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      box-shadow: var(--shadow-lg);
       width: 100%; animation: modalIn .18s ease;
     }
     .modal-sm { max-width: 420px; }
